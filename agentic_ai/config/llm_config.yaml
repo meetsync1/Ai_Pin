@@ -1,0 +1,34 @@
+# LLM Configuration
+llm:
+  # Default LLM provider: openai, anthropic, huggingface, local
+  provider: "openai"
+
+  # Provider-specific settings
+  openai:
+    model: "gpt-4"
+    api_key: "${OPENAI_API_KEY}" # Set via environment variable
+    temperature: 0.7
+    max_tokens: 2000
+
+  anthropic:
+    model: "claude-3-opus-20240229"
+    api_key: "${ANTHROPIC_API_KEY}"
+    temperature: 0.7
+    max_tokens: 2000
+
+  huggingface:
+    model: "meta-llama/Llama-2-7b-chat-hf"
+    api_key: "${HUGGINGFACE_API_KEY}"
+
+  local:
+    # For Ollama or llama.cpp
+    model: "llama3"
+    base_url: "http://localhost:11434"
+
+# ASR to LLM Pipeline Settings
+pipeline:
+  asr_model: "unsloth/whisper-large-v3-turbo"
+  default_language: "english"
+  save_transcripts: true
+  save_responses: true
+  output_dir: "data/outputs"

@@ -1,0 +1,17 @@
+version: "1.0.0"
+project_name: "Agentic AI System"
+description: "Comprehensive agentic AI template for intelligent autonomous systems"
+
+# Global settings
+settings:
+  debug: false
+  log_level: "INFO"
+  max_threads: 4
+  timeout: 300
+
+# Import other configurations
+imports:
+  - agent_config.yaml
+  - model_config.yaml
+  - environment_config.yaml
+  - logging_config.yaml
