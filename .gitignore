@@ -8,8 +8,11 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.expo-shared/
 
-# Native
+# Native (generated)
+/ios/
+/android/
 .kotlin/
 *.orig.*
 *.jks
@@ -33,15 +36,34 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # typescript
 *.tsbuildinfo
 
+# Example/template folders
 app-example
 
-# generated native folders
-/ios
-/android
+# EAS Build
+.eas/
+eas-build-*.json
+
+# Whisper models (large files)
+*.bin
+*.gguf
+models/
+
+# Audio recordings cache (generated)
+audio_*.wav
+audio_*.m4a
+*.wav
+*.m4a
+
+# Transcription output (generated during testing)
+transcriptions/
 
 # Python
 __pycache__/
