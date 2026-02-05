@@ -1,0 +1,36 @@
+# Python Dependencies for ASR → LLM Pipeline
+
+# Core
+python>=3.8,<4.0
+
+# Deep Learning (for Whisper ASR)
+torch>=2.0.0
+transformers>=4.30.0
+safetensors>=0.3.1
+
+# Audio Processing
+librosa>=0.10.0
+soundfile>=0.12.1
+audioread>=3.0.0
+
+# Data Processing
+numpy>=1.24.0
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Logging
+loguru>=0.7.0
+
+# LLM Integration
+openai>=1.0.0       # For OpenAI GPT models
+anthropic>=0.18.0   # For Anthropic Claude models
+requests>=2.31.0    # For local model APIs (Ollama, llama.cpp)
+
+# Testing (Optional)
+pytest>=7.3.0
+
+# Optional: Advanced LLM Providers
+# groq>=0.4.0       # For Groq LLMs
+# together>=0.2.0   # For Together AI

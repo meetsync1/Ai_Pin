@@ -1,3 +1,0 @@
-"""
-Source Package Init
-"""

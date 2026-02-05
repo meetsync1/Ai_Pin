@@ -123,7 +123,9 @@ class WhisperService {
         callbacks?.onProgress?.(0.05); // 5% for conversion
         try {
           audioPathToTranscribe = await AudioConverter.convertToWav(audioPath);
-          console.log(`✅ Audio converted successfully: ${audioPathToTranscribe}`);
+          console.log(
+            `✅ Audio converted successfully: ${audioPathToTranscribe}`,
+          );
         } catch (conversionError) {
           console.error(`❌ Audio conversion failed:`, conversionError);
           console.log(`⚠️ Attempting to transcribe original file anyway...`);
@@ -453,7 +455,9 @@ class WhisperService {
 
           // Check file signature - verify file is not too small
           if (fileContent.length > 0) {
-            console.log(`🔍 File content verified, base64 sample length: ${fileContent.length}`);
+            console.log(
+              `🔍 File content verified, base64 sample length: ${fileContent.length}`,
+            );
 
             // M4A/MP4 should have minimum size
             if (fileSize < 100) {
@@ -606,7 +610,10 @@ class WhisperService {
   }
 
   // Store for realtime transcription session
-  private realtimeSession: { stop: () => void; subscribe: (callback: (event: any) => void) => void } | null = null;
+  private realtimeSession: {
+    stop: () => void;
+    subscribe: (callback: (event: any) => void) => void;
+  } | null = null;
   private realtimeSegments: TranscriptionSegment[] = [];
   private realtimeStartTime: number = 0;
   private realtimeLastText: string = ""; // Track last text for final result
@@ -618,7 +625,7 @@ class WhisperService {
    */
   async startRealtimeTranscription(
     callbacks?: RealtimeTranscriptionCallback,
-    options: TranscriptionOptions = {}
+    options: TranscriptionOptions = {},
   ): Promise<void> {
     if (!this.context) {
       throw new Error("Whisper not initialized. Call initialize() first.");
@@ -632,7 +639,10 @@ class WhisperService {
       this.realtimeLastText = "";
       this.isManualStop = false;
 
-      const languageParam = options.language === "auto" || !options.language ? "en" : options.language;
+      const languageParam =
+        options.language === "auto" || !options.language
+          ? "en"
+          : options.language;
 
       // Use whisper.rn's built-in realtime transcription
       // This handles audio recording internally with correct format
@@ -642,7 +652,7 @@ class WhisperService {
       //   Set high to allow long recordings (10 minutes = 600 seconds)
       // - realtimeAudioSliceSec: How often to process chunks (must be <=30 for whisper.cpp)
       // - realtimeAudioMinSec: Minimum audio before first processing
-      // 
+      //
       // whisper.rn will automatically slice long audio into 30-second chunks for processing
 
       const realtimeConfig = {
@@ -653,9 +663,14 @@ class WhisperService {
         realtimeAudioMinSec: 1, // Start processing after 1 second of audio
       };
 
-      console.log("🎙️ Starting realtime transcription with config:", realtimeConfig);
+      console.log(
+        "🎙️ Starting realtime transcription with config:",
+        realtimeConfig,
+      );
 
-      const { stop, subscribe } = await (this.context as any).transcribeRealtime(realtimeConfig);
+      const { stop, subscribe } = await (
+        this.context as any
+      ).transcribeRealtime(realtimeConfig);
 
       this.realtimeSession = { stop, subscribe };
 
@@ -697,13 +712,19 @@ class WhisperService {
 
                 // If this is a new slice (beyond what we've processed before)
                 if (i >= processedSliceCount) {
-                  console.log(`📝 New slice ${i}: "${sliceText.substring(0, 50)}..."`);
+                  console.log(
+                    `📝 New slice ${i}: "${sliceText.substring(0, 50)}..."`,
+                  );
 
                   // Create segment for this new slice
                   const segment: TranscriptionSegment = {
                     text: sliceText,
-                    start: slice.recordingTime ? (slice.recordingTime - slice.processTime) / 1000 : i * 28,
-                    end: slice.recordingTime ? slice.recordingTime / 1000 : (i + 1) * 28,
+                    start: slice.recordingTime
+                      ? (slice.recordingTime - slice.processTime) / 1000
+                      : i * 28,
+                    end: slice.recordingTime
+                      ? slice.recordingTime / 1000
+                      : (i + 1) * 28,
                   };
 
                   this.realtimeSegments.push(segment);
@@ -720,8 +741,9 @@ class WhisperService {
           accumulatedText = allSliceTexts.join(" ").trim();
           this.realtimeLastText = accumulatedText;
 
-          console.log(`📊 Accumulated text length: ${accumulatedText.length} chars`);
-
+          console.log(
+            `📊 Accumulated text length: ${accumulatedText.length} chars`,
+          );
         } else if (data?.result) {
           // Handle single result (for short recordings or single chunk)
           const currentText = data.result
@@ -730,11 +752,16 @@ class WhisperService {
             .trim();
 
           if (currentText && currentText !== accumulatedText) {
-            console.log(`📝 Single result: "${currentText.substring(0, 50)}..."`);
+            console.log(
+              `📝 Single result: "${currentText.substring(0, 50)}..."`,
+            );
 
             // For single results, extract just the new portion
             let newText = currentText;
-            if (accumulatedText && currentText.length > accumulatedText.length) {
+            if (
+              accumulatedText &&
+              currentText.length > accumulatedText.length
+            ) {
               // This is cumulative - extract new part
               if (currentText.startsWith(accumulatedText)) {
                 newText = currentText.substring(accumulatedText.length).trim();
@@ -749,7 +776,7 @@ class WhisperService {
               };
 
               // Only add if we don't already have this exact text
-              if (!this.realtimeSegments.some(s => s.text === newText)) {
+              if (!this.realtimeSegments.some((s) => s.text === newText)) {
                 this.realtimeSegments.push(segment);
                 callbacks?.onSegment?.(segment);
               }
@@ -765,7 +792,9 @@ class WhisperService {
 
         if (!isCapturing) {
           console.log("✅ Realtime transcription finished (isCapturing=false)");
-          console.log(`📊 Final accumulated text: ${accumulatedText.length} chars`);
+          console.log(
+            `📊 Final accumulated text: ${accumulatedText.length} chars`,
+          );
           console.log(`📊 Total segments: ${this.realtimeSegments.length}`);
 
           // Store the final text
@@ -798,7 +827,9 @@ class WhisperService {
       throw new Error("No active realtime transcription session");
     }
 
-    console.log("⏹️ Stopping realtime transcription... waiting for final processing");
+    console.log(
+      "⏹️ Stopping realtime transcription... waiting for final processing",
+    );
 
     this.isManualStop = true;
 
@@ -861,7 +892,9 @@ class WhisperService {
         timestamp: Date.now(),
       };
 
-      console.log(`✅ Final transcription ready. Text: "${fullText.substring(0, 100)}..."`);
+      console.log(
+        `✅ Final transcription ready. Text: "${fullText.substring(0, 100)}..."`,
+      );
 
       this.stopResolve(result);
       this.stopResolve = null;

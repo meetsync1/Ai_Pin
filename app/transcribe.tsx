@@ -460,12 +460,29 @@ export default function TranscribeScreen() {
             <Text style={styles.savedTitle}>✅ Saved Successfully</Text>
             <Text style={styles.savedPath}>JSON: {savedPaths.json.split("/").pop()}</Text>
             <Text style={styles.savedPath}>SRT: {savedPaths.srt.split("/").pop()}</Text>
-            <TouchableOpacity
-              style={styles.viewButton}
-              onPress={() => router.push("/history")}
-            >
-              <Text style={styles.viewButtonText}>View in History →</Text>
-            </TouchableOpacity>
+
+            {/* Action buttons */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.viewButton}
+                onPress={() => router.push("/history")}
+              >
+                <Text style={styles.viewButtonText}>📚 History</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewButton, styles.summarizeButton]}
+                onPress={() => {
+                  // Navigate to summarize with the transcription text
+                  router.push({
+                    pathname: "/summarize",
+                    params: { text: transcriptionText }
+                  });
+                }}
+              >
+                <Text style={styles.viewButtonText}>🤖 Summarize</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -940,5 +957,13 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 18,
+  },
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  summarizeButton: {
+    backgroundColor: "#667eea",
   },
 });

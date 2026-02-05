@@ -1,21 +1,21 @@
 import TranscriptionStorage from "@/services/storage/TranscriptionStorage";
 import {
-    TranscriptionResult
+  TranscriptionResult
 } from "@/services/whisper/types";
 import * as FileSystem from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ViewTranscriptionScreen() {
@@ -142,20 +142,33 @@ export default function ViewTranscriptionScreen() {
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>View Transcription</Text>
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={
-            viewMode === "text"
-              ? shareText
-              : viewMode === "json"
-                ? shareJSON
-                : viewMode === "srt"
-                  ? shareSRT
-                  : shareText
-          }
-        >
-          <Text style={styles.shareButtonText}>📤 Share</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.summarizeBtn}
+            onPress={() => {
+              router.push({
+                pathname: "/summarize",
+                params: { text: transcription.text }
+              });
+            }}
+          >
+            <Text style={styles.summarizeBtnText}>🤖</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={
+              viewMode === "text"
+                ? shareText
+                : viewMode === "json"
+                  ? shareJSON
+                  : viewMode === "srt"
+                    ? shareSRT
+                    : shareText
+            }
+          >
+            <Text style={styles.shareButtonText}>📤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Metadata */}
@@ -468,5 +481,18 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+  },
+  summarizeBtn: {
+    padding: 8,
+    backgroundColor: "#F3E8FF",
+    borderRadius: 8,
+  },
+  summarizeBtnText: {
+    fontSize: 20,
   },
 });
