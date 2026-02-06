@@ -1,22 +1,27 @@
+import { Button } from "@/components/Button";
+import { ThemedText } from "@/components/themed-text";
+import { TechNoir } from "@/constants/DesignSystem";
 import { DEFAULT_WHISPER_MODEL } from "@/constants/whisper";
 import ModelStorage from "@/services/storage/ModelStorage";
-import { RecordingInfo } from "@/services/storage/RecordingStorage";
+import RecordingStorage, { RecordingInfo } from "@/services/storage/RecordingStorage";
 import TranscriptionStorage from "@/services/storage/TranscriptionStorage";
 import type { TranscriptionSegment } from "@/services/whisper/types";
 import WhisperService from "@/services/whisper/WhisperService";
+import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function TranscribeScreen() {
@@ -36,7 +41,7 @@ export default function TranscribeScreen() {
   const [recordings, setRecordings] = useState<RecordingInfo[]>([]);
   const [showRecordings, setShowRecordings] = useState(false);
 
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioUriRef = useRef<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -292,7 +297,11 @@ export default function TranscribeScreen() {
         onSegment: (segment) => {
           console.log("📝 New segment:", segment.text);
           setSegments((prev) => [...prev, segment]);
-          setTranscriptionText((prev) => prev + " " + segment.text);
+          setTranscriptionText((prev) => {
+            const newSegment = segment.text.trim();
+            if (!newSegment) return prev;
+            return prev ? `${prev} ${newSegment}` : newSegment;
+          });
         },
         onProgress: (progressValue) => {
           setProgress(progressValue * 100);
@@ -358,14 +367,12 @@ export default function TranscribeScreen() {
   if (!isModelLoaded) {
     return (
       <View style={styles.container}>
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
         <View style={styles.centerContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorTitle}>Initialization Failed</Text>
-          <Text style={styles.errorText}>{error || "Unknown error"}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={initializeWhisper}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
+          <ThemedText type="subtitle" style={{color: 'white', marginBottom: 8}}>Initialization Failed</ThemedText>
+          <ThemedText style={{color: '#999', marginBottom: 24}}>{error || "Unknown error"}</ThemedText>
+          <Button title="Retry Initialization" onPress={initializeWhisper} />
         </View>
       </View>
     );
@@ -373,52 +380,51 @@ export default function TranscribeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.title}>Voice Transcription</Text>
+        <ThemedText type="subtitle">TRANSCRIPTION</ThemedText>
         <TouchableOpacity
           style={styles.historyButton}
           onPress={() => router.push("/history")}
         >
-          <Text style={styles.historyButtonText}>📚</Text>
+          <Ionicons name="time-outline" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        {isRecording && (
-          <View style={styles.recordingIndicator}>
-            <View style={styles.recordingDot} />
-            <Text style={styles.recordingText}>Recording</Text>
-          </View>
-        )}
-        {isTranscribing && (
-          <View style={styles.transcribingIndicator}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <Text style={styles.transcribingText}>Transcribing...</Text>
-          </View>
-        )}
-        {!isRecording && !isTranscribing && (
-          <Text style={styles.readyText}>✅ Ready to record</Text>
+      {/* Timer & Status */}
+      <View style={styles.statusSection}>
+         {/* Timer Display */}
+        <Text style={styles.timerText}>{formatTime(recordingTime)}</Text>
+        
+        {/* Status Badge */}
+        <View style={styles.statusBadge}>
+            {isRecording ? (
+                <>
+                    <View style={styles.recordingDot} />
+                    <Text style={styles.statusText}>RECORDING</Text>
+                </>
+            ) : isTranscribing ? (
+                <>
+                    <ActivityIndicator size="small" color={TechNoir.colors.tint} />
+                    <Text style={styles.statusText}>PROCESSING</Text>
+                </>
+            ) : (
+                <Text style={[styles.statusText, { color: '#888' }]}>READY</Text>
+            )}
+        </View>
+
+        {/* Progress Bar for Loading/Processing */}
+        {(isInitializing || (isTranscribing && progress > 0)) && (
+            <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBar, { width: `${progress}%` }]} />
+            </View>
         )}
       </View>
-
-      {/* Timer */}
-      {(isRecording || isTranscribing) && (
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerText}>{formatTime(recordingTime)}</Text>
-          {isTranscribing && progress > 0 && (
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { width: `${progress}%` }]} />
-            </View>
-          )}
-        </View>
-      )}
 
       {/* Transcription Display */}
       <ScrollView
@@ -427,161 +433,48 @@ export default function TranscribeScreen() {
         contentContainerStyle={styles.transcriptionContent}
       >
         {transcriptionText ? (
-          <View style={styles.textContainer}>
-            <Text style={styles.transcriptionText}>{transcriptionText}</Text>
-          </View>
+            <ThemedText style={styles.transcriptionText}>{transcriptionText}</ThemedText>
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🎤</Text>
-            <Text style={styles.emptyText}>
+            <Ionicons name="mic-outline" size={64} color="#333" />
+            <ThemedText style={styles.emptyText}>
               {isRecording
-                ? "Speak now... Your words will appear here"
-                : "Tap the button below to start recording"}
-            </Text>
-          </View>
-        )}
-
-        {segments.length > 0 && (
-          <View style={styles.segmentsContainer}>
-            <Text style={styles.segmentsTitle}>Segments ({segments.length})</Text>
-            {segments.map((segment, index) => (
-              <View key={index} style={styles.segment}>
-                <Text style={styles.segmentTime}>
-                  {segment.start.toFixed(1)}s - {segment.end.toFixed(1)}s
-                </Text>
-                <Text style={styles.segmentText}>{segment.text}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {savedPaths && (
-          <View style={styles.savedContainer}>
-            <Text style={styles.savedTitle}>✅ Saved Successfully</Text>
-            <Text style={styles.savedPath}>JSON: {savedPaths.json.split("/").pop()}</Text>
-            <Text style={styles.savedPath}>SRT: {savedPaths.srt.split("/").pop()}</Text>
-
-            {/* Action buttons */}
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity
-                style={styles.viewButton}
-                onPress={() => router.push("/history")}
-              >
-                <Text style={styles.viewButtonText}>📚 History</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.viewButton, styles.summarizeButton]}
-                onPress={() => {
-                  // Navigate to summarize with the transcription text
-                  router.push({
-                    pathname: "/summarize",
-                    params: { text: transcriptionText }
-                  });
-                }}
-              >
-                <Text style={styles.viewButtonText}>🤖 Summarize</Text>
-              </TouchableOpacity>
-            </View>
+                ? "Listening..."
+                : "Tap to record"}
+            </ThemedText>
           </View>
         )}
       </ScrollView>
 
-      {/* Record Button */}
+      {/* Record & Action Buttons Area */}
       <View style={styles.buttonContainer}>
         {isTranscribing ? (
-          <View style={styles.disabledButton}>
-            <ActivityIndicator size="large" color="#fff" />
-            <Text style={styles.buttonText}>Processing...</Text>
-          </View>
+           <Button title="Processing..." onPress={() => {}} variant="ghost" icon={<ActivityIndicator color="white" />} />
         ) : (
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <TouchableOpacity
-              style={[
-                styles.recordButton,
-                isRecording && styles.recordButtonActive,
-              ]}
-              onPress={isRecording ? stopRecording : startRecording}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.recordButtonIcon}>
-                {isRecording ? "⏹" : "🎤"}
-              </Text>
-              <Text style={styles.buttonText}>
-                {isRecording ? "Stop Recording" : "Start Recording"}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <View style={{ width: '100%', gap: 16 }}>
+             {/* Summarize Button - Only show if we have text and aren't recording */}
+             {transcriptionText.length > 0 && !isRecording && (
+                <Button 
+                    title="SUMMARIZE" 
+                    onPress={() => router.push({ pathname: "/summarize", params: { text: transcriptionText } })}
+                    variant="secondary"
+                    icon={<Ionicons name="sparkles" size={20} color={TechNoir.colors.textPrimary} style={{marginRight: 8}}/>}
+                />
+             )}
+          
+             <Animated.View style={{ transform: [{ scale: pulseAnim }], width: '100%' }}>
+                <Button 
+                    title={isRecording ? "STOP RECORDING" : (transcriptionText.length > 0 ? "NEW RECORDING" : "START RECORDING")}
+                    onPress={isRecording ? stopRecording : startRecording}
+                    variant={isRecording ? "secondary" : "primary"}
+                    style={isRecording ? { borderColor: TechNoir.colors.error } : {}}
+                    textStyle={isRecording ? { color: TechNoir.colors.error } : {}}
+                    icon={<Ionicons name={isRecording ? "stop" : "mic"} size={20} color={isRecording ? TechNoir.colors.error : (transcriptionText.length > 0 ? TechNoir.colors.background : TechNoir.colors.background)} style={{marginRight: 8}}/>}
+                />
+             </Animated.View>
+          </View>
         )}
       </View>
-
-      {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>⚠️ {error}</Text>
-        </View>
-      )}
-
-      {/* Debug: Recordings List Toggle */}
-      <TouchableOpacity
-        style={styles.debugButton}
-        onPress={() => {
-          setShowRecordings(!showRecordings);
-          if (!showRecordings) {
-            loadRecordings();
-          }
-        }}
-      >
-        <Text style={styles.debugButtonText}>
-          {showRecordings ? "Hide Recordings 🔼" : "Show Recordings 🔽"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Recordings List */}
-      {showRecordings && (
-        <View style={styles.recordingsContainer}>
-          <View style={styles.recordingsHeader}>
-            <Text style={styles.recordingsTitle}>
-              📁 Cached Recordings ({recordings.length})
-            </Text>
-            <TouchableOpacity onPress={loadRecordings}>
-              <Text style={styles.refreshButton}>🔄 Refresh</Text>
-            </TouchableOpacity>
-          </View>
-
-          {recordings.length === 0 ? (
-            <Text style={styles.noRecordingsText}>No recordings found</Text>
-          ) : (
-            <ScrollView style={styles.recordingsList}>
-              {recordings.map((recording, index) => (
-                <View key={index} style={styles.recordingItem}>
-                  <View style={styles.recordingInfo}>
-                    <Text style={styles.recordingFilename} numberOfLines={1}>
-                      {recording.filename}
-                    </Text>
-                    <Text style={styles.recordingDetails}>
-                      {recording.sizeFormatted} • {recording.extension.toUpperCase()} • {recording.modificationTimeFormatted}
-                    </Text>
-                  </View>
-                  <View style={styles.recordingActions}>
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={() => playRecording(recording.uri)}
-                    >
-                      <Text style={styles.actionButtonText}>▶️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.transcribeButton}
-                      onPress={() => transcribeSavedRecording(recording.uri)}
-                    >
-                      <Text style={styles.actionButtonText}>📝</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
     </View>
   );
 }
@@ -589,7 +482,8 @@ export default function TranscribeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TechNoir.colors.background,
+    paddingTop: Platform.OS === "ios" ? 0 : 0,
   },
   centerContainer: {
     flex: 1,
@@ -601,321 +495,206 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
-    paddingTop: Platform.OS === "ios" ? 60 : 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: TechNoir.colors.background,
   },
   backButton: {
     padding: 8,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-  },
   historyButton: {
     padding: 8,
   },
-  historyButtonText: {
-    fontSize: 24,
-  },
-  statusBar: {
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  recordingIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  recordingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#FF3B30",
-  },
-  recordingText: {
-    fontSize: 16,
-    color: "#FF3B30",
-    fontWeight: "600",
-  },
-  transcribingIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  transcribingText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  readyText: {
-    fontSize: 16,
-    color: "#34C759",
-    fontWeight: "600",
-  },
-  timerContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 16,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+  statusSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   timerText: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 64,
+    fontWeight: "200", // Ultra light/thin
+    color: "#fff",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    letterSpacing: -2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: TechNoir.colors.error,
+    marginRight: 8,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   transcriptionContainer: {
     flex: 1,
+    marginTop: 20,
   },
-  transcriptionContent: {
-    padding: 16,
-  },
-  textContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  transcriptionText: {
+  segmentText: {
     fontSize: 18,
     lineHeight: 28,
-    color: "#333",
+    color: "#fff",
+    fontWeight: '300',
+  },
+  segmentTime: {
+      fontSize: 10,
+      color: TechNoir.colors.textSecondary,
+      marginTop: 4,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  transcriptionContent: {
+    padding: 24,
+    paddingBottom: 200,
+  },
+  transcriptionText: {
+    fontSize: 24,
+    lineHeight: 36,
+    color: "#fff",
+    fontWeight: '300',
   },
   emptyContainer: {
     alignItems: "center",
     paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    opacity: 0.5,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    paddingHorizontal: 40,
-  },
-  segmentsContainer: {
-    marginTop: 16,
-  },
-  segmentsTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  segment: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: "#007AFF",
-  },
-  segmentTime: {
-    fontSize: 12,
     color: "#666",
-    marginBottom: 4,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-  },
-  segmentText: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 22,
-  },
-  savedContainer: {
-    backgroundColor: "#E8F5E9",
-    borderRadius: 12,
-    padding: 20,
     marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#4CAF50",
-  },
-  savedTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 12,
-  },
-  savedPath: {
-    fontSize: 14,
-    color: "#1B5E20",
-    marginBottom: 4,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-  },
-  viewButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: "center",
-  },
-  viewButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
   buttonContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
   },
-  recordButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 60,
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  // ... Keep debug styles minimal or remove if not needed for user
+  debugButton: { 
+      padding: 10, 
+      alignItems: 'center', 
+      backgroundColor: '#111',
+      marginTop: 10
   },
-  recordButtonActive: {
-    backgroundColor: "#FF3B30",
-  },
-  recordButtonIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
+  debugButtonText: { color: TechNoir.colors.textSecondary },
+  // Restored Styles
   buttonText: {
-    color: "#fff",
+    color: TechNoir.colors.textPrimary,
     fontSize: 18,
     fontWeight: "bold",
+    fontFamily: TechNoir.typography.fontFamily.bold,
   },
   disabledButton: {
-    backgroundColor: "#999",
-    borderRadius: 60,
+    backgroundColor: TechNoir.colors.surfaceHighlight,
+    borderRadius: TechNoir.borderRadius.xl,
     paddingVertical: 20,
     paddingHorizontal: 40,
     alignItems: "center",
+    opacity: 0.5,
   },
   errorBanner: {
-    backgroundColor: "#FFEBEE",
+    backgroundColor: TechNoir.colors.error + '20', // 20% opacity
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: "#EF5350",
+    borderTopColor: TechNoir.colors.error,
   },
   errorBannerText: {
-    color: "#C62828",
+    color: TechNoir.colors.error,
     fontSize: 14,
     textAlign: "center",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
   },
   progressBarContainer: {
     width: "80%",
     height: 6,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
     borderRadius: 3,
     marginTop: 16,
     overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#007AFF",
+    backgroundColor: TechNoir.colors.tint,
     borderRadius: 3,
   },
   progressText: {
     marginTop: 8,
     fontSize: 14,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
     fontWeight: "600",
   },
   errorIcon: {
-    fontSize: 64,
     marginBottom: 16,
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: TechNoir.colors.textPrimary,
     marginBottom: 12,
   },
   errorText: {
     fontSize: 16,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
     textAlign: "center",
     marginBottom: 24,
     paddingHorizontal: 20,
   },
   retryButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: TechNoir.colors.tint,
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#fff",
+    color: TechNoir.colors.background,
     fontSize: 16,
     fontWeight: "600",
   },
-  // Debug recordings list styles
-  debugButton: {
-    backgroundColor: "#f0f0f0",
-    padding: 12,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
-  },
-  debugButtonText: {
-    color: "#666",
-    fontSize: 14,
-    fontWeight: "600",
-  },
   recordingsContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: TechNoir.colors.surface,
     maxHeight: 300,
     borderTopWidth: 1,
-    borderTopColor: "#ddd",
+    borderTopColor: TechNoir.colors.border,
   },
   recordingsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    borderBottomColor: TechNoir.colors.border,
   },
   recordingsTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
+    color: TechNoir.colors.textPrimary,
   },
   refreshButton: {
     fontSize: 14,
-    color: "#007AFF",
+    color: TechNoir.colors.tint,
   },
   noRecordingsText: {
     padding: 20,
     textAlign: "center",
-    color: "#999",
+    color: TechNoir.colors.textSecondary,
     fontStyle: "italic",
   },
   recordingsList: {
@@ -926,7 +705,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: TechNoir.colors.border,
   },
   recordingInfo: {
     flex: 1,
@@ -934,11 +713,11 @@ const styles = StyleSheet.create({
   recordingFilename: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: TechNoir.colors.textPrimary,
   },
   recordingDetails: {
     fontSize: 12,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
     marginTop: 2,
   },
   recordingActions: {
@@ -946,17 +725,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   playButton: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
     padding: 8,
     borderRadius: 8,
   },
   transcribeButton: {
-    backgroundColor: "#E8F5E9",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
     padding: 8,
     borderRadius: 8,
   },
   actionButtonText: {
     fontSize: 18,
+    color: TechNoir.colors.textPrimary,
   },
   actionButtonsRow: {
     flexDirection: "row",
@@ -964,6 +744,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   summarizeButton: {
-    backgroundColor: "#667eea",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
   },
+
 });

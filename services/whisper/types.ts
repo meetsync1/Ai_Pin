@@ -7,6 +7,8 @@ export interface TranscriptionOptions {
   maxDuration?: number; // max audio duration in seconds
   realtime?: boolean; // enable real-time streaming callbacks
   translate?: boolean; // translate to English
+  onSegment?: (segment: TranscriptionSegment) => void; // callback for each segment
+  onProgress?: (progress: number) => void; // callback for progress updates
 }
 
 export interface TranscriptionSegment {

@@ -10,7 +10,7 @@ import ModelManager from '@/services/llm/ModelManager';
 import TranscriptionStorage from '@/services/storage/TranscriptionStorage';
 import SummarizationService, { SummaryResult } from '@/services/summarization/SummarizationService';
 import WhisperService, { TranscriptionResult } from '@/services/whisper/WhisperService';
-import * as FileSystem from 'expo-file-system';
+import { documentDirectory, getInfoAsync, makeDirectoryAsync, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 
 export interface PipelineResult {
     transcription: TranscriptionResult | null;
@@ -72,11 +72,11 @@ class PipelineService {
             callbacks?.onStageChange?.('llm', 'initializing');
             if (!ModelManager.isReady()) {
                 // Get model path
-                const modelDir = `${FileSystem.documentDirectory}models/`;
+                const modelDir = `${documentDirectory}models/`;
                 const modelPath = `${modelDir}${DEFAULT_MODEL.id}`;
 
                 // Check if model exists
-                const modelInfo = await FileSystem.getInfoAsync(modelPath);
+                const modelInfo = await getInfoAsync(modelPath);
                 if (!modelInfo.exists) {
                     console.log('⚠️ LLM model not downloaded yet');
                     callbacks?.onError?.('LLM model not downloaded. Please download from Settings.');
@@ -165,7 +165,7 @@ class PipelineService {
             if (!ModelManager.isReady()) {
                 callbacks?.onStageChange?.('llm', 'initializing');
 
-                const modelDir = `${FileSystem.documentDirectory}models/`;
+                const modelDir = `${documentDirectory}models/`;
                 const modelPath = `${modelDir}${DEFAULT_MODEL.id}`;
 
                 await ModelManager.loadModel({
@@ -254,7 +254,7 @@ class PipelineService {
             // Ensure LLM is loaded
             if (!ModelManager.isReady()) {
                 console.log('📦 Loading LLM model...');
-                const modelDir = `${FileSystem.documentDirectory}models/`;
+                const modelDir = `${documentDirectory}models/`;
                 const modelPath = `${modelDir}${DEFAULT_MODEL.id}`;
 
                 await ModelManager.loadModel({
@@ -292,15 +292,15 @@ class PipelineService {
      */
     private async saveSummary(summary: string): Promise<void> {
         try {
-            const summaryDir = `${FileSystem.documentDirectory}summaries/`;
-            await FileSystem.makeDirectoryAsync(summaryDir, { intermediates: true });
+            const summaryDir = `${documentDirectory}summaries/`;
+            await makeDirectoryAsync(summaryDir, { intermediates: true });
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const filename = `summary_${timestamp}.md`;
             const filepath = `${summaryDir}${filename}`;
 
-            await FileSystem.writeAsStringAsync(filepath, summary, {
-                encoding: FileSystem.EncodingType.UTF8,
+            await writeAsStringAsync(filepath, summary, {
+                encoding: EncodingType.UTF8,
             });
 
             this.result.summaryPath = filepath;

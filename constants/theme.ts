@@ -8,22 +8,24 @@ import { Platform } from 'react-native';
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+import { TechNoir } from './DesignSystem';
+
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: TechNoir.colors.textPrimary,
+    background: TechNoir.colors.background, // Enforce dark mode even in "light" context for consistent branding
+    tint: TechNoir.colors.tint,
+    icon: TechNoir.colors.icon,
+    tabIconDefault: TechNoir.colors.textSecondary,
+    tabIconSelected: TechNoir.colors.tint,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: TechNoir.colors.textPrimary,
+    background: TechNoir.colors.background,
+    tint: TechNoir.colors.tint,
+    icon: TechNoir.colors.icon,
+    tabIconDefault: TechNoir.colors.textSecondary,
+    tabIconSelected: TechNoir.colors.tint,
   },
 };
 

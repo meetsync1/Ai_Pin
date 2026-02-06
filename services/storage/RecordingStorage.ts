@@ -3,7 +3,12 @@
  * Helps debug recording issues by showing saved recordings
  */
 
-import * as FileSystem from "expo-file-system";
+import {
+  cacheDirectory,
+  getInfoAsync,
+  readDirectoryAsync,
+  deleteAsync,
+} from "expo-file-system/legacy";
 
 export interface RecordingInfo {
     uri: string;
@@ -16,7 +21,9 @@ export interface RecordingInfo {
 }
 
 class RecordingStorage {
-    private readonly audioDirectory = `${FileSystem.cacheDirectory}Audio/`;
+    private get audioDirectory(): string {
+        return `${cacheDirectory}Audio/`;
+    }
 
     /**
      * Get list of all recordings in the cache directory
@@ -24,14 +31,14 @@ class RecordingStorage {
     async listRecordings(): Promise<RecordingInfo[]> {
         try {
             // Check if Audio directory exists
-            const dirInfo = await FileSystem.getInfoAsync(this.audioDirectory);
+            const dirInfo = await getInfoAsync(this.audioDirectory);
             if (!dirInfo.exists) {
                 console.log("📁 Audio directory does not exist yet");
                 return [];
             }
 
             // Read directory contents
-            const files = await FileSystem.readDirectoryAsync(this.audioDirectory);
+            const files = await readDirectoryAsync(this.audioDirectory);
             console.log(`📁 Found ${files.length} files in Audio directory`);
 
             // Get info for each file
@@ -39,7 +46,7 @@ class RecordingStorage {
             for (const filename of files) {
                 try {
                     const uri = `${this.audioDirectory}${filename}`;
-                    const info = await FileSystem.getInfoAsync(uri);
+                    const info = await getInfoAsync(uri);
 
                     if (info.exists && "size" in info) {
                         const extension = filename.split(".").pop()?.toLowerCase() || "unknown";
@@ -75,7 +82,7 @@ class RecordingStorage {
      */
     async deleteRecording(uri: string): Promise<boolean> {
         try {
-            await FileSystem.deleteAsync(uri, { idempotent: true });
+            await deleteAsync(uri, { idempotent: true });
             console.log(`🗑️ Deleted recording: ${uri}`);
             return true;
         } catch (error) {

@@ -1,21 +1,23 @@
+import { TechNoir } from "@/constants/DesignSystem";
 import TranscriptionStorage from "@/services/storage/TranscriptionStorage";
 import {
-  TranscriptionResult
+    TranscriptionResult
 } from "@/services/whisper/types";
-import * as FileSystem from "expo-file-system";
-import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { readAsStringAsync } from "expo-file-system/legacy";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function ViewTranscriptionScreen() {
@@ -44,14 +46,14 @@ export default function ViewTranscriptionScreen() {
 
         // Load JSON content
         const jsonPath = `${TranscriptionStorage.getTranscriptionsDirectory()}${filename}`;
-        const jsonText = await FileSystem.readAsStringAsync(jsonPath);
+        const jsonText = await readAsStringAsync(jsonPath);
         setJsonContent(JSON.stringify(JSON.parse(jsonText), null, 2));
 
         // Load SRT content
         const srtFilename = filename.replace(".json", ".srt");
         const srtPath = `${TranscriptionStorage.getTranscriptionsDirectory()}${srtFilename}`;
         try {
-          const srtText = await FileSystem.readAsStringAsync(srtPath);
+          const srtText = await readAsStringAsync(srtPath);
           setSrtContent(srtText);
         } catch {
           setSrtContent("SRT file not found");
@@ -109,8 +111,8 @@ export default function ViewTranscriptionScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={TechNoir.colors.tint} />
+          <Text style={styles.loadingText}>DECRYPTING...</Text>
         </View>
       </View>
     );
@@ -120,9 +122,10 @@ export default function ViewTranscriptionScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Transcription not found</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={TechNoir.colors.textSecondary} />
+          <Text style={styles.errorText}>LOG NOT FOUND</Text>
           <TouchableOpacity style={styles.button} onPress={() => router.back()}>
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={styles.buttonText}>RETURN</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -131,7 +134,8 @@ export default function ViewTranscriptionScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -139,12 +143,12 @@ export default function ViewTranscriptionScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color={TechNoir.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>View Transcription</Text>
+        <Text style={styles.title}>TRANSCRIPTION LOG</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.summarizeBtn}
+            style={styles.actionIconButton}
             onPress={() => {
               router.push({
                 pathname: "/summarize",
@@ -152,10 +156,10 @@ export default function ViewTranscriptionScreen() {
               });
             }}
           >
-            <Text style={styles.summarizeBtnText}>🤖</Text>
+            <Ionicons name="analytics-outline" size={20} color={TechNoir.colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.shareButton}
+            style={styles.actionIconButton}
             onPress={
               viewMode === "text"
                 ? shareText
@@ -166,90 +170,57 @@ export default function ViewTranscriptionScreen() {
                     : shareText
             }
           >
-            <Text style={styles.shareButtonText}>📤</Text>
+            <Ionicons name="share-outline" size={20} color={TechNoir.colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Metadata */}
       <View style={styles.metadata}>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Date:</Text>
-          <Text style={styles.metadataValue}>
-            {new Date(transcription.timestamp || 0).toLocaleString()}
-          </Text>
+        <View style={styles.metadataCol}>
+           <Text style={styles.metadataLabel}>DATE</Text>
+           <Text style={styles.metadataValue}>{new Date(transcription.timestamp || 0).toLocaleDateString()}</Text>
         </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Language:</Text>
-          <Text style={styles.metadataValue}>
-            {transcription.language.toUpperCase()}
-          </Text>
+        <View style={styles.metadataDivider} />
+        <View style={styles.metadataCol}>
+           <Text style={styles.metadataLabel}>TIME</Text>
+           <Text style={styles.metadataValue}>{(transcription.duration / 1000).toFixed(1)}s</Text>
         </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Duration:</Text>
-          <Text style={styles.metadataValue}>
-            {(transcription.duration / 1000).toFixed(1)}s
-          </Text>
-        </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Segments:</Text>
-          <Text style={styles.metadataValue}>
-            {transcription.segments.length}
-          </Text>
+        <View style={styles.metadataDivider} />
+        <View style={styles.metadataCol}>
+           <Text style={styles.metadataLabel}>SEGMENTS</Text>
+           <Text style={styles.metadataValue}>{transcription.segments.length}</Text>
         </View>
       </View>
 
       {/* View Mode Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, viewMode === "text" && styles.tabActive]}
-          onPress={() => setViewMode("text")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              viewMode === "text" && styles.tabTextActive,
-            ]}
-          >
-            Text
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, viewMode === "segments" && styles.tabActive]}
-          onPress={() => setViewMode("segments")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              viewMode === "segments" && styles.tabTextActive,
-            ]}
-          >
-            Segments
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, viewMode === "json" && styles.tabActive]}
-          onPress={() => setViewMode("json")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              viewMode === "json" && styles.tabTextActive,
-            ]}
-          >
-            JSON
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, viewMode === "srt" && styles.tabActive]}
-          onPress={() => setViewMode("srt")}
-        >
-          <Text
-            style={[styles.tabText, viewMode === "srt" && styles.tabTextActive]}
-          >
-            SRT
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.tabsContainer}>
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, viewMode === "text" && styles.tabActive]}
+              onPress={() => setViewMode("text")}
+            >
+              <Text style={[styles.tabText, viewMode === "text" && styles.tabTextActive]}>TEXT</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, viewMode === "segments" && styles.tabActive]}
+              onPress={() => setViewMode("segments")}
+            >
+              <Text style={[styles.tabText, viewMode === "segments" && styles.tabTextActive]}>SEGMENTS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, viewMode === "json" && styles.tabActive]}
+              onPress={() => setViewMode("json")}
+            >
+              <Text style={[styles.tabText, viewMode === "json" && styles.tabTextActive]}>JSON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, viewMode === "srt" && styles.tabActive]}
+              onPress={() => setViewMode("srt")}
+            >
+              <Text style={[styles.tabText, viewMode === "srt" && styles.tabTextActive]}>SRT</Text>
+            </TouchableOpacity>
+          </View>
       </View>
 
       {/* Content */}
@@ -268,9 +239,9 @@ export default function ViewTranscriptionScreen() {
             {transcription.segments.map((segment, index) => (
               <View key={index} style={styles.segment}>
                 <View style={styles.segmentHeader}>
-                  <Text style={styles.segmentNumber}>#{index + 1}</Text>
+                  <Text style={styles.segmentNumber}>{String(index + 1).padStart(2, '0')}</Text>
                   <Text style={styles.segmentTime}>
-                    {formatTime(segment.start)} → {formatTime(segment.end)}
+                    {formatTime(segment.start)} - {formatTime(segment.end)}
                   </Text>
                 </View>
                 <Text style={styles.segmentText}>{segment.text}</Text>
@@ -289,7 +260,9 @@ export default function ViewTranscriptionScreen() {
 
         {viewMode === "srt" && (
           <View style={styles.codeContainer}>
-            <Text style={styles.codeText}>{srtContent}</Text>
+             <ScrollView horizontal>
+                <Text style={styles.codeText}>{srtContent}</Text>
+             </ScrollView>
           </View>
         )}
       </ScrollView>
@@ -300,165 +273,168 @@ export default function ViewTranscriptionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TechNoir.colors.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
-    paddingTop: Platform.OS === "ios" ? 60 : 16,
-    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "android" ? 50 : 60,
+    paddingBottom: 16,
+    backgroundColor: TechNoir.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: TechNoir.colors.border,
   },
   backButton: {
     padding: 8,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  shareButton: {
-    padding: 8,
-  },
-  shareButtonText: {
     fontSize: 14,
-    color: "#007AFF",
-    fontWeight: "600",
+    fontWeight: "bold",
+    color: TechNoir.colors.textPrimary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionIconButton: {
+      padding: 8,
+      backgroundColor: TechNoir.colors.surfaceHighlight,
+      borderRadius: 4,
   },
   metadata: {
-    backgroundColor: "#fff",
-    padding: 16,
+    backgroundColor: TechNoir.colors.surface,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: TechNoir.colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  metadataRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+  metadataCol: {
+      alignItems: 'center',
   },
   metadataLabel: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 10,
+    color: TechNoir.colors.textSecondary,
     fontWeight: "600",
+    letterSpacing: 1,
+    marginBottom: 4,
   },
   metadataValue: {
     fontSize: 14,
-    color: "#333",
+    color: TechNoir.colors.textPrimary,
+    fontWeight: 'bold',
+  },
+  metadataDivider: {
+      width: 1,
+      backgroundColor: TechNoir.colors.border,
+      height: '100%',
+  },
+  tabsContainer: {
+     padding: 16,
   },
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    backgroundColor: TechNoir.colors.surface,
+    borderRadius: 8,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    borderRadius: 6,
   },
   tabActive: {
-    borderBottomColor: "#007AFF",
+    backgroundColor: TechNoir.colors.surfaceHighlight,
   },
   tabText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: TechNoir.colors.textSecondary,
     fontWeight: "600",
   },
   tabTextActive: {
-    color: "#007AFF",
+    color: TechNoir.colors.textPrimary,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 40,
   },
   textContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 16,
   },
   fullText: {
     fontSize: 16,
-    lineHeight: 26,
-    color: "#333",
+    lineHeight: 28,
+    color: TechNoir.colors.textPrimary,
+    fontFamily: TechNoir.typography.fontFamily.regular,
   },
   segmentsContainer: {
     gap: 12,
   },
   segment: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: TechNoir.colors.surface,
+    borderRadius: 8,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
   },
   segmentHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
-    paddingBottom: 8,
+    marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: TechNoir.colors.surfaceHighlight,
+    paddingBottom: 8,
   },
   segmentNumber: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: TechNoir.colors.textSecondary,
   },
   segmentTime: {
     fontSize: 12,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   segmentText: {
     fontSize: 15,
     lineHeight: 22,
-    color: "#333",
+    color: TechNoir.colors.textPrimary,
   },
   codeContainer: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
+    backgroundColor: '#000',
+    borderRadius: 8,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
   },
   codeText: {
     fontSize: 12,
     lineHeight: 18,
-    color: "#d4d4d4",
+    color: "#0f0", // Matrix style for code
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: TechNoir.colors.background,
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: "#666",
+    fontSize: 12,
+    color: TechNoir.colors.textSecondary,
+    letterSpacing: 2,
   },
   errorContainer: {
     flex: 1,
@@ -467,32 +443,22 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorText: {
-    fontSize: 18,
-    color: "#666",
+    fontSize: 16,
+    color: TechNoir.colors.textSecondary,
     marginBottom: 20,
+    marginTop: 16,
+    letterSpacing: 1,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: TechNoir.colors.textPrimary,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 4,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  headerActions: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-  },
-  summarizeBtn: {
-    padding: 8,
-    backgroundColor: "#F3E8FF",
-    borderRadius: 8,
-  },
-  summarizeBtnText: {
-    fontSize: 20,
+    color: TechNoir.colors.background,
+    fontSize: 14,
+    fontWeight: "bold",
+    letterSpacing: 1,
   },
 });

@@ -5,7 +5,7 @@
  * Currently operates in pass-through mode, letting whisper.rn try to decode the audio
  */
 
-import * as FileSystem from "expo-file-system";
+import { cacheDirectory, getInfoAsync } from "expo-file-system/legacy";
 
 /**
  * Convert audio file to WAV format compatible with Whisper
@@ -24,7 +24,7 @@ export async function convertToWav(inputPath: string): Promise<string> {
 
         // Generate output path
         const timestamp = Date.now();
-        const outputPath = `${FileSystem.cacheDirectory}audio_converted_${timestamp}.wav`;
+        const outputPath = `${cacheDirectory}audio_converted_${timestamp}.wav`;
 
         console.log(`🎬 Converting with FFmpeg...`);
         console.log(`   Input: ${inputPath}`);
@@ -39,7 +39,7 @@ export async function convertToWav(inputPath: string): Promise<string> {
         if (ReturnCode.isSuccess(returnCode)) {
             console.log(`✅ Audio conversion successful!`);
 
-            const outputInfo = await FileSystem.getInfoAsync(outputPath);
+            const outputInfo = await getInfoAsync(outputPath);
             if (outputInfo.exists && "size" in outputInfo) {
                 console.log(`📦 Converted file size: ${(outputInfo.size / 1024).toFixed(2)} KB`);
             }
@@ -76,7 +76,7 @@ export async function getAudioInfo(filePath: string): Promise<{
     extension: string;
     needsConversion: boolean;
 }> {
-    const info = await FileSystem.getInfoAsync(filePath);
+    const info = await getInfoAsync(filePath);
     const extension = filePath.split(".").pop()?.toLowerCase() || "unknown";
 
     return {

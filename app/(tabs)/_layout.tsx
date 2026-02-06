@@ -3,8 +3,9 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { TechNoir } from '@/constants/DesignSystem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -12,9 +13,22 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: TechNoir.colors.tint,
+        tabBarInactiveTintColor: TechNoir.colors.textSecondary,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: TechNoir.colors.background,
+          borderTopColor: TechNoir.colors.border,
+          borderTopWidth: 0.5,
+          elevation: 0,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarBackground: () => (
+            <View style={{ flex: 1, backgroundColor: TechNoir.colors.background }} />
+        ),
       }}>
       <Tabs.Screen
         name="index"

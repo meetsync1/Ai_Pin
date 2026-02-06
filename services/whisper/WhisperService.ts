@@ -4,16 +4,16 @@
  */
 
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import { EncodingType, getInfoAsync, readAsStringAsync } from "expo-file-system/legacy";
 import { initWhisper, WhisperContext } from "whisper.rn";
 import AudioConverter from "../audio/AudioConverter";
 import {
-  RealtimeTranscriptionCallback,
-  TranscriptionOptions,
-  TranscriptionResult,
-  TranscriptionSegment,
-  WhisperLoadState,
-  WhisperModelConfig,
+    RealtimeTranscriptionCallback,
+    TranscriptionOptions,
+    TranscriptionResult,
+    TranscriptionSegment,
+    WhisperLoadState,
+    WhisperModelConfig,
 } from "./types";
 
 class WhisperService {
@@ -102,7 +102,7 @@ class WhisperService {
       console.log(`🎤 Transcribing audio: ${audioPath}`);
 
       // Verify audio file exists and get details
-      const audioInfo = await FileSystem.getInfoAsync(audioPath);
+      const audioInfo = await getInfoAsync(audioPath);
       if (!audioInfo.exists) {
         throw new Error(`Audio file not found: ${audioPath}`);
       }
@@ -148,8 +148,8 @@ class WhisperService {
       // Try to read file content to verify it's not corrupt
       if (audioInfo.exists && "size" in audioInfo && audioInfo.size) {
         try {
-          const base64Sample = await FileSystem.readAsStringAsync(audioPath, {
-            encoding: FileSystem.EncodingType.Base64,
+          const base64Sample = await readAsStringAsync(audioPath, {
+            encoding: EncodingType.Base64,
             length: 100, // Read first 100 bytes
           });
           console.log(
@@ -416,7 +416,7 @@ class WhisperService {
       }
 
       // Check the recorded file
-      const fileInfo = await FileSystem.getInfoAsync(uri);
+      const fileInfo = await getInfoAsync(uri);
       console.log(`📦 Recorded file info:`, {
         exists: fileInfo.exists,
         size:
@@ -444,8 +444,8 @@ class WhisperService {
           console.log(`🔍 Verifying recorded file: ${fileSize} bytes`);
 
           // Try reading the file
-          const fileContent = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
+          const fileContent = await readAsStringAsync(uri, {
+            encoding: EncodingType.Base64,
             length: 200,
           });
 
@@ -572,7 +572,7 @@ class WhisperService {
    */
   private async checkModelExists(path: string): Promise<boolean> {
     try {
-      const info = await FileSystem.getInfoAsync(path);
+      const info = await getInfoAsync(path);
       return info.exists;
     } catch {
       return false;

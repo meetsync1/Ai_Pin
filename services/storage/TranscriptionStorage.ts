@@ -2,7 +2,17 @@
  * TranscriptionStorage - Save and manage transcription files (JSON & SRT)
  */
 
-import * as FileSystem from "expo-file-system";
+import {
+  documentDirectory,
+  getInfoAsync,
+  makeDirectoryAsync,
+  readDirectoryAsync,
+  readAsStringAsync,
+  writeAsStringAsync,
+  deleteAsync,
+  copyAsync,
+  EncodingType,
+} from "expo-file-system/legacy";
 import { TranscriptionResult, TranscriptionSegment } from "../whisper/types";
 
 export interface SavedTranscription {
@@ -16,10 +26,8 @@ export interface SavedTranscription {
 }
 
 class TranscriptionStorage {
-  private readonly transcriptionsDir = `${FileSystem.documentDirectory}transcriptions/`;
-
-  constructor() {
-    this.ensureDirectoryExists();
+  private get transcriptionsDir(): string {
+    return `${documentDirectory}transcriptions/`;
   }
 
   /**
@@ -27,9 +35,9 @@ class TranscriptionStorage {
    */
   private async ensureDirectoryExists(): Promise<void> {
     try {
-      const dirInfo = await FileSystem.getInfoAsync(this.transcriptionsDir);
+      const dirInfo = await getInfoAsync(this.transcriptionsDir);
       if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(this.transcriptionsDir, {
+        await makeDirectoryAsync(this.transcriptionsDir, {
           intermediates: true,
         });
         console.log(
@@ -63,18 +71,18 @@ class TranscriptionStorage {
     try {
       // Delete JSON file
       const jsonPath = `${this.transcriptionsDir}${filename}`;
-      const jsonInfo = await FileSystem.getInfoAsync(jsonPath);
+      const jsonInfo = await getInfoAsync(jsonPath);
       if (jsonInfo.exists) {
-        await FileSystem.deleteAsync(jsonPath);
+        await deleteAsync(jsonPath);
         console.log(`🗑 Deleted JSON: ${filename}`);
       }
 
       // Delete SRT file
       const srtFilename = filename.replace(".json", ".srt");
       const srtPath = `${this.transcriptionsDir}${srtFilename}`;
-      const srtInfo = await FileSystem.getInfoAsync(srtPath);
+      const srtInfo = await getInfoAsync(srtPath);
       if (srtInfo.exists) {
-        await FileSystem.deleteAsync(srtPath);
+        await deleteAsync(srtPath);
         console.log(`🗑 Deleted SRT: ${srtFilename}`);
       }
     } catch (error) {
@@ -107,10 +115,10 @@ class TranscriptionStorage {
         },
       };
 
-      await FileSystem.writeAsStringAsync(
+      await writeAsStringAsync(
         filepath,
         JSON.stringify(jsonData, null, 2),
-        { encoding: FileSystem.EncodingType.UTF8 },
+        { encoding: EncodingType.UTF8 },
       );
 
       console.log(`✅ Saved transcription as JSON: ${filepath}`);
@@ -133,8 +141,8 @@ class TranscriptionStorage {
 
       const srtContent = this.convertToSrt(result.segments);
 
-      await FileSystem.writeAsStringAsync(filepath, srtContent, {
-        encoding: FileSystem.EncodingType.UTF8,
+      await writeAsStringAsync(filepath, srtContent, {
+        encoding: EncodingType.UTF8,
       });
 
       console.log(`✅ Saved transcription as SRT: ${filepath}`);
@@ -197,7 +205,7 @@ class TranscriptionStorage {
     try {
       await this.ensureDirectoryExists();
 
-      const files = await FileSystem.readDirectoryAsync(this.transcriptionsDir);
+      const files = await readDirectoryAsync(this.transcriptionsDir);
       const jsonFiles = files.filter((file) => file.endsWith(".json"));
 
       const transcriptions: SavedTranscription[] = [];
@@ -205,7 +213,7 @@ class TranscriptionStorage {
       for (const file of jsonFiles) {
         try {
           const filepath = `${this.transcriptionsDir}${file}`;
-          const content = await FileSystem.readAsStringAsync(filepath);
+          const content = await readAsStringAsync(filepath);
           const data = JSON.parse(content);
 
           transcriptions.push({
@@ -242,7 +250,7 @@ class TranscriptionStorage {
   ): Promise<TranscriptionResult | null> {
     try {
       const filepath = `${this.transcriptionsDir}${filename}`;
-      const content = await FileSystem.readAsStringAsync(filepath);
+      const content = await readAsStringAsync(filepath);
       const data = JSON.parse(content);
 
       return {
@@ -264,7 +272,7 @@ class TranscriptionStorage {
    */
   async clearAll(): Promise<void> {
     try {
-      await FileSystem.deleteAsync(this.transcriptionsDir, {
+      await deleteAsync(this.transcriptionsDir, {
         idempotent: true,
       });
       await this.ensureDirectoryExists();
@@ -289,7 +297,7 @@ class TranscriptionStorage {
         : filename.replace(/\.(json|srt)$/, `.${format}`);
       const sourcePath = `${this.transcriptionsDir}${sourceFile}`;
 
-      await FileSystem.copyAsync({
+      await copyAsync({
         from: sourcePath,
         to: destinationUri,
       });

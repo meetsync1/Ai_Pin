@@ -1,7 +1,5 @@
-import TranscriptionStorage, {
-    SavedTranscription,
-} from "@/services/storage/TranscriptionStorage";
-import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,6 +13,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+
+import { TechNoir } from "@/constants/DesignSystem";
+import TranscriptionStorage, {
+    SavedTranscription,
+} from "@/services/storage/TranscriptionStorage";
 
 export default function TranscriptionHistoryScreen() {
   const [transcriptions, setTranscriptions] = useState<SavedTranscription[]>(
@@ -77,6 +80,18 @@ export default function TranscriptionHistoryScreen() {
 
   const shareTranscription = async (item: SavedTranscription) => {
     try {
+        if (!item.textPreview) { // Fallback if textPreview is missing, though type says it's there
+             const full = await TranscriptionStorage.loadTranscription(item.filename);
+             if (full) {
+                 await Share.share({
+                  message: full.text,
+                  title: `Transcription - ${new Date(item.timestamp).toLocaleDateString()}`,
+                 });
+                 return;
+             }
+        }
+        // If we have preview or just proceed (loading full if needed)
+        // Ideally we load full text to share
       const transcription = await TranscriptionStorage.loadTranscription(
         item.filename,
       );
@@ -96,7 +111,6 @@ export default function TranscriptionHistoryScreen() {
     return date.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -111,7 +125,8 @@ export default function TranscriptionHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -119,9 +134,9 @@ export default function TranscriptionHistoryScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="chevron-back" size={24} color={TechNoir.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Transcription History</Text>
+        <Text style={styles.title}>HISTORY</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -129,42 +144,46 @@ export default function TranscriptionHistoryScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={TechNoir.colors.textPrimary} 
+          />
         }
       >
         {isLoading && transcriptions.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Loading...</Text>
+            <Text style={styles.loadingText}>LOADING INTELLIGENCE...</Text>
           </View>
         ) : transcriptions.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📝</Text>
-            <Text style={styles.emptyTitle}>No Transcriptions Yet</Text>
-            <Text style={styles.emptyText}>
-              Record your first audio to see it here
+            <Ionicons name="document-text-outline" size={64} color={TechNoir.colors.textSecondary} style={styles.emptyIcon} />
+            <Text style={styles.emptyTitle}>NO DATA</Text>
+            <Text style={styles.emptyDescription}>
+              Record your first log to populate the archives
             </Text>
             <TouchableOpacity
-              style={styles.emptyButton}
+              style={styles.ctaButton}
               onPress={() => router.push("/transcribe")}
             >
-              <Text style={styles.emptyButtonText}>Start Recording</Text>
+              <Text style={styles.ctaButtonText}>INITIATE RECORDING</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <View style={styles.statsContainer}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{transcriptions.length}</Text>
-                <Text style={styles.statLabel}>Total</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>
-                  {transcriptions
-                    .reduce((sum, t) => sum + t.textPreview.length, 0)
-                    .toLocaleString()}
-                </Text>
-                <Text style={styles.statLabel}>Characters</Text>
-              </View>
+                <View style={[styles.statBox, { marginRight: 8 }]}>
+                    <Text style={styles.statNumber}>{transcriptions.length}</Text>
+                    <Text style={styles.statLabel}>ENTRIES</Text>
+                </View>
+                 <View style={[styles.statBox, { marginLeft: 8 }]}>
+                    <Text style={styles.statNumber}>
+                      {transcriptions
+                        .reduce((sum, t) => sum + (t.textPreview?.length || 0), 0)
+                        .toLocaleString()}
+                    </Text>
+                    <Text style={styles.statLabel}>TOKENS</Text>
+                  </View>
             </View>
 
             {transcriptions.map((item, index) => (
@@ -175,59 +194,41 @@ export default function TranscriptionHistoryScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.cardHeader}>
-                    <View style={styles.cardHeaderLeft}>
-                      <Text style={styles.cardDate}>
-                        {formatDate(item.timestamp)}
-                      </Text>
-                      <View style={styles.cardBadges}>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>
-                            {item.language.toUpperCase()}
-                          </Text>
-                        </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>
-                            {formatDuration(item.duration)}
-                          </Text>
-                        </View>
-                      </View>
+                    <Text style={styles.cardDate}>
+                        {formatDate(item.timestamp).toUpperCase()}
+                    </Text>
+                    <View style={styles.cardBadges}>
+                         <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{formatDuration(item.duration)}</Text>
+                         </View>
                     </View>
                   </View>
 
-                  <Text style={styles.cardText} numberOfLines={3}>
-                    {item.textPreview}
+                  <Text style={styles.cardText} numberOfLines={2}>
+                    {item.textPreview || "No preview available"}
                   </Text>
-
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardLength}>
-                      {item.textPreview.length} characters
-                    </Text>
-                  </View>
                 </TouchableOpacity>
 
                 <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => viewTranscription(item)}
-                  >
-                    <Text style={styles.actionButtonText}>👁 View</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => shareTranscription(item)}
-                  >
-                    <Text style={styles.actionButtonText}>📤 Share</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => deleteTranscription(item)}
-                  >
-                    <Text
-                      style={[styles.actionButtonText, styles.deleteButtonText]}
+                   <TouchableOpacity 
+                        style={styles.actionButton} 
+                        onPress={() => shareTranscription(item)}
                     >
-                      🗑 Delete
-                    </Text>
-                  </TouchableOpacity>
+                        <Ionicons name="share-outline" size={18} color={TechNoir.colors.textSecondary} />
+                   </TouchableOpacity>
+                   <TouchableOpacity 
+                        style={styles.actionButton} 
+                        onPress={() => deleteTranscription(item)}
+                    >
+                        <Ionicons name="trash-outline" size={18} color={TechNoir.colors.textSecondary} />
+                   </TouchableOpacity>
+                     <TouchableOpacity 
+                        style={styles.viewButton} 
+                        onPress={() => viewTranscription(item)}
+                    >
+                        <Text style={styles.viewButtonText}>ACCESS</Text>
+                        <Ionicons name="arrow-forward" size={14} color={TechNoir.colors.background} />
+                   </TouchableOpacity>
                 </View>
               </View>
             ))}
@@ -241,76 +242,111 @@ export default function TranscriptionHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TechNoir.colors.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
-    paddingTop: Platform.OS === "ios" ? 60 : 16,
-    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "android" ? 50 : 60,
+    paddingBottom: 20,
+    backgroundColor: TechNoir.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: TechNoir.colors.border,
   },
   backButton: {
     padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
+    marginLeft: -8,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "700",
+    color: TechNoir.colors.textPrimary,
+    letterSpacing: 2,
+    marginTop: 4,
   },
   placeholder: {
-    width: 60,
+    width: 40,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 40,
   },
   statsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
+    flexDirection: 'row',
+    marginBottom: 24,
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: TechNoir.colors.surface,
+    padding: 16,
+    borderRadius: TechNoir.borderRadius.s,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
+    alignItems: 'center',
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: TechNoir.colors.textPrimary,
     marginBottom: 4,
   },
   statLabel: {
+    fontSize: 10,
+    color: TechNoir.colors.textSecondary,
+    letterSpacing: 1.5,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 100,
+  },
+  loadingText: {
+    color: TechNoir.colors.textSecondary,
+    fontSize: 12,
+    letterSpacing: 1.5,
+  },
+  emptyIcon: {
+    marginBottom: 20,
+    opacity: 0.5,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: TechNoir.colors.textPrimary,
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  emptyDescription: {
     fontSize: 14,
-    color: "#666",
+    color: TechNoir.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 30,
+    maxWidth: 250,
+  },
+  ctaButton: {
+    backgroundColor: TechNoir.colors.textPrimary,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: TechNoir.borderRadius.s,
+  },
+  ctaButtonText: {
+    color: TechNoir.colors.background,
+    fontSize: 14,
+    fontWeight: "bold",
+    letterSpacing: 1,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: TechNoir.colors.surface,
+    borderRadius: TechNoir.borderRadius.s,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
     overflow: "hidden",
   },
   cardContent: {
@@ -322,98 +358,58 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  cardHeaderLeft: {
-    flex: 1,
-  },
   cardDate: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
+    fontSize: 12,
+    color: TechNoir.colors.textSecondary,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
   cardBadges: {
     flexDirection: "row",
     gap: 8,
   },
   badge: {
-    backgroundColor: "#e3f2fd",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: TechNoir.colors.surfaceHighlight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
   },
   badgeText: {
-    fontSize: 12,
-    color: "#1976d2",
+    fontSize: 10,
+    color: TechNoir.colors.textPrimary,
     fontWeight: "600",
   },
   cardText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#333",
-    marginBottom: 12,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardLength: {
-    fontSize: 12,
-    color: "#999",
+    fontSize: 15,
+    lineHeight: 22,
+    color: TechNoir.colors.textPrimary,
+    opacity: 0.9,
   },
   cardActions: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
+    alignItems: 'center',
+    padding: 12,
+    paddingTop: 0,
+    justifyContent: 'flex-end',
+    gap: 16,
   },
   actionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderRightWidth: 1,
-    borderRightColor: "#f0f0f0",
+    padding: 8,
   },
-  deleteButton: {
-    borderRightWidth: 0,
+  viewButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: TechNoir.colors.textPrimary,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 2,
+      gap: 4,
+      marginLeft: 8,
   },
-  actionButtonText: {
-    fontSize: 14,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  deleteButtonText: {
-    color: "#FF3B30",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 80,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  emptyButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  viewButtonText: {
+      color: TechNoir.colors.background,
+      fontSize: 10,
+      fontWeight: "bold",
+      letterSpacing: 1,
+  }
 });

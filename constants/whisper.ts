@@ -3,13 +3,13 @@
  */
 
 import { WhisperModelConfig } from "@/services/whisper/types";
-import * as FileSystem from "expo-file-system";
+import { documentDirectory } from "expo-file-system/legacy";
 
 // Whisper Base Model Configuration
 export const WHISPER_BASE_MODEL: WhisperModelConfig = {
   id: "whisper-base",
   name: "Whisper Base",
-  path: `${FileSystem.documentDirectory}models/ggml-base.bin`,
+  path: `${documentDirectory}models/ggml-base.bin`,
   size: 142, // ~142 MB
   url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
 };
@@ -18,7 +18,7 @@ export const WHISPER_BASE_MODEL: WhisperModelConfig = {
 export const WHISPER_TINY_MODEL: WhisperModelConfig = {
   id: "whisper-tiny",
   name: "Whisper Tiny",
-  path: `${FileSystem.documentDirectory}models/ggml-tiny.bin`,
+  path: `${documentDirectory}models/ggml-tiny.bin`,
   size: 75, // ~75 MB
   url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
 };
@@ -27,7 +27,7 @@ export const WHISPER_TINY_MODEL: WhisperModelConfig = {
 export const WHISPER_SMALL_MODEL: WhisperModelConfig = {
   id: "whisper-small",
   name: "Whisper Small",
-  path: `${FileSystem.documentDirectory}models/ggml-small.bin`,
+  path: `${documentDirectory}models/ggml-small.bin`,
   size: 466, // ~466 MB
   url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
 };

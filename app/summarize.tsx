@@ -1,17 +1,21 @@
+import { Button } from "@/components/Button";
+import { TechNoir } from "@/constants/DesignSystem";
+import { DEFAULT_FORMAT, SUMMARIZATION_FORMATS, type SummarizationFormat } from '@/constants/summarization-formats';
 import SummarizationService from '@/services/summarization/SummarizationService';
-import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function SummarizeScreen() {
@@ -21,6 +25,7 @@ export default function SummarizeScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingTime, setProcessingTime] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<SummarizationFormat>(DEFAULT_FORMAT);
 
   // Load text from navigation params if available
   useEffect(() => {
@@ -42,12 +47,13 @@ export default function SummarizeScreen() {
     }
 
     console.log('🎯 Starting summarization...');
+    console.log(`📋 Selected format: ${selectedFormat.name}`);
     setIsProcessing(true);
     setError(null);
     setSummary('');
 
     try {
-      const result = await SummarizationService.summarize(transcription);
+      const result = await SummarizationService.summarizeWithFormat(transcription, selectedFormat.id);
 
       console.log('🎯 Summarization result:', {
         hasError: !!result.error,
@@ -77,6 +83,7 @@ export default function SummarizeScreen() {
     setSummary('');
     setError(null);
     setProcessingTime(null);
+    setSelectedFormat(DEFAULT_FORMAT);
   };
 
   return (
@@ -84,92 +91,159 @@ export default function SummarizeScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar style="auto" />
+      <Stack.Screen options={{ 
+          headerStyle: { backgroundColor: TechNoir.colors.background },
+          headerTintColor: TechNoir.colors.textPrimary,
+          title: "INTELLIGENCE",
+          headerTitleStyle: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }
+      }} />
+      <StatusBar style="light" />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>AI Transcription Summarizer</Text>
-        <Text style={styles.subtitle}>Enter your transcription below</Text>
+        <View style={styles.header}>
+            <Ionicons name="sparkles" size={24} color={TechNoir.colors.tint} style={{ marginBottom: 8 }} />
+            <Text style={styles.title}>SUMMARIZER</Text>
+            <Text style={styles.subtitle}>INPUT TRANSCRIPTION DATA FOR ANALYSIS</Text>
+        </View>
 
         {/* Input Section */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>Transcription</Text>
-          <TextInput
-            style={styles.textInput}
-            multiline
-            numberOfLines={8}
-            value={transcription}
-            onChangeText={setTranscription}
-            placeholder="Paste or type your transcription here..."
-            placeholderTextColor="#999"
-            editable={!isProcessing}
-          />
-          <Text style={styles.charCount}>{transcription.length} characters</Text>
+          <Text style={styles.label}>INPUT SOURCE</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+                style={styles.textInput}
+                multiline
+                numberOfLines={8}
+                value={transcription}
+                onChangeText={setTranscription}
+                placeholder="AWAITING DATA..."
+                placeholderTextColor={TechNoir.colors.textSecondary}
+                editable={!isProcessing}
+            />
+            <View style={styles.cornerTL} />
+            <View style={styles.cornerTR} />
+            <View style={styles.cornerBL} />
+            <View style={styles.cornerBR} />
+          </View>
+          <Text style={styles.charCount}>{transcription.length} UNITS</Text>
+        </View>
+
+        {/* Format Selector */}
+        <View style={styles.formatSection}>
+          <Text style={styles.label}>OUTPUT FORMAT</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.formatScroll}>
+            {SUMMARIZATION_FORMATS.map((format) => (
+              <TouchableOpacity
+                key={format.id}
+                style={[
+                  styles.formatChip,
+                  selectedFormat.id === format.id && styles.formatChipSelected,
+                ]}
+                onPress={() => setSelectedFormat(format)}
+                disabled={isProcessing}
+              >
+                <Ionicons 
+                  name={format.icon as any} 
+                  size={14} 
+                  color={selectedFormat.id === format.id ? TechNoir.colors.background : TechNoir.colors.textSecondary} 
+                />
+                <Text style={[
+                  styles.formatChipText,
+                  selectedFormat.id === format.id && styles.formatChipTextSelected,
+                ]}>
+                  {format.name.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={styles.formatDescription}>{selectedFormat.description}</Text>
         </View>
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton, isProcessing && styles.buttonDisabled]}
-            onPress={handleSummarize}
-            disabled={isProcessing || !transcription.trim()}
-          >
-            {isProcessing ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Generate Summary</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={handleClear}
-            disabled={isProcessing}
-          >
-            <Text style={styles.secondaryButtonText}>Clear</Text>
-          </TouchableOpacity>
+          <View style={{flex: 1}}>
+             <Button
+                title={isProcessing ? "PROCESSING..." : "INITIATE ANALYSIS"}
+                onPress={handleSummarize}
+                variant="primary"
+                icon={isProcessing ? <ActivityIndicator color={TechNoir.colors.background} /> : <Ionicons name="flash" size={16} color={TechNoir.colors.background} />}
+             />
+          </View>
+          {transcription.length > 0 && !isProcessing && (
+              <View style={{flex: 0.4}}>
+                <Button
+                    title="CLEAR"
+                    onPress={handleClear}
+                    variant="ghost"
+                    textStyle={{ color: TechNoir.colors.error }}
+                />
+              </View>
+          )}
         </View>
+
+        {/* Processing Message */}
+        {isProcessing && (
+          <View style={styles.statusContainer}>
+             <ActivityIndicator color={TechNoir.colors.tint} />
+             <Text style={styles.statusText}>Accessing Neural Neural Model...</Text>
+             <Text style={[styles.statusText, { fontSize: 10, marginTop: 4 }]}>ESTIMATED TIME: 30-90s</Text>
+          </View>
+        )}
 
         {/* Error Display */}
         {error && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>❌ {error}</Text>
+            <Ionicons name="warning" size={24} color={TechNoir.colors.error} />
+            <Text style={styles.errorText}>ERROR: {error.toUpperCase()}</Text>
           </View>
         )}
-
-        {/* Debug Info */}
-        <View style={styles.debugContainer}>
-          <Text style={styles.debugText}>
-            Summary length: {summary?.length || 0} | Has summary: {summary ? 'YES' : 'NO'}
-          </Text>
-        </View>
 
         {/* Summary Display */}
         {summary && summary.length > 0 && (
           <View style={styles.summarySection}>
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>📝 Summary</Text>
+              <Text style={styles.summaryTitle}>ANALYSIS RESULT</Text>
               {processingTime && (
                 <Text style={styles.processingTime}>
-                  ⚡ {(processingTime / 1000).toFixed(1)}s
+                  ⚡ {(processingTime / 1000).toFixed(2)}s
                 </Text>
               )}
             </View>
             <View style={styles.summaryContainer}>
-              <ScrollView
-                style={styles.summaryScroll}
-                nestedScrollEnabled={true}
-              >
-                <Text style={styles.summaryText}>{summary}</Text>
-              </ScrollView>
-            </View>
-          </View>
-        )}
+              <View style={styles.summaryDecorLine} />
+              <View style={styles.summaryDecorLine} />
+              <View style={{ marginLeft: 12 }}>
+                {summary.split('\n').map((line, i) => {
+                  // Check for bullet points
+                  const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ');
+                  const cleanLine = isBullet ? line.trim().substring(2) : line;
 
-        {/* Processing Indicator */}
-        {isProcessing && (
-          <View style={styles.processingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.processingText}>Generating summary...</Text>
+                  const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+                  
+                  return (
+                    <View key={i} style={{ flexDirection: 'row', marginBottom: 4 }}>
+                      {isBullet && <Text style={{ color: TechNoir.colors.tint, marginRight: 8 }}>•</Text>}
+                      <Text style={{ flex: 1 }}>
+                        {parts.map((part, j) => {
+                          if (part.startsWith('**') && part.endsWith('**')) {
+                            return (
+                              <Text key={j} style={[styles.summaryText, { fontWeight: 'bold', color: TechNoir.colors.textPrimary }]}>
+                                {part.slice(2, -2)}
+                              </Text>
+                            );
+                          }
+                          return (
+                            <Text key={j} style={styles.summaryText}>
+                              {part}
+                            </Text>
+                          );
+                        })}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -180,108 +254,110 @@ export default function SummarizeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: TechNoir.colors.background,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 40,
   },
+  header: {
+      alignItems: 'center',
+      marginBottom: 32,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '900',
+    color: TechNoir.colors.textPrimary,
+    letterSpacing: 2,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
+    fontSize: 10,
+    color: TechNoir.colors.textSecondary,
+    letterSpacing: 2,
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: TechNoir.colors.textSecondary,
     marginBottom: 8,
+    letterSpacing: 1,
+  },
+  inputWrapper: {
+      position: 'relative',
   },
   textInput: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: TechNoir.colors.surface,
+    borderRadius: 2,
     padding: 16,
-    fontSize: 16,
-    color: '#333',
+    fontSize: 14,
+    color: TechNoir.colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: TechNoir.colors.border,
     minHeight: 150,
     textAlignVertical: 'top',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
+  cornerTL: { position: 'absolute', top: -1, left: -1, width: 8, height: 8, borderTopWidth: 2, borderLeftWidth: 2, borderColor: TechNoir.colors.textPrimary },
+  cornerTR: { position: 'absolute', top: -1, right: -1, width: 8, height: 8, borderTopWidth: 2, borderRightWidth: 2, borderColor: TechNoir.colors.textPrimary },
+  cornerBL: { position: 'absolute', bottom: -1, left: -1, width: 8, height: 8, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: TechNoir.colors.textPrimary },
+  cornerBR: { position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderBottomWidth: 2, borderRightWidth: 2, borderColor: TechNoir.colors.textPrimary },
+  
   charCount: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
+    fontSize: 10,
+    color: TechNoir.colors.textSecondary,
+    marginTop: 8,
     textAlign: 'right',
+    letterSpacing: 1,
   },
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
+    marginBottom: 24,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  primaryButton: {
-    backgroundColor: '#007AFF',
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
+  statusContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: TechNoir.colors.surface,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: TechNoir.colors.tint,
+    borderRadius: 4,
+    marginBottom: 24,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
+  statusText: {
+      marginTop: 8,
+      color: TechNoir.colors.tint,
+      fontSize: 12,
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
   },
   errorContainer: {
-    backgroundColor: '#ffebee',
+    backgroundColor: TechNoir.colors.surface,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 4,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: TechNoir.colors.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   errorText: {
-    color: '#c62828',
-    fontSize: 14,
-  },
-  debugContainer: {
-    backgroundColor: '#e3f2fd',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  debugText: {
+    color: TechNoir.colors.error,
     fontSize: 12,
-    color: '#1976d2',
-    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    flex: 1,
   },
   summarySection: {
-    marginTop: 24,
+    marginTop: 8,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -290,37 +366,74 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: TechNoir.colors.textPrimary,
+    letterSpacing: 1,
   },
   processingTime: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
+    color: TechNoir.colors.textSecondary,
+    fontFamily: 'monospace',
   },
   summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: TechNoir.colors.surface,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    height: 400,
+    borderColor: TechNoir.colors.border,
+    position: 'relative',
+    minHeight: 100,
   },
-  summaryScroll: {
-    flex: 1,
+  summaryDecorLine: {
+      position: 'absolute',
+      left: 0, 
+      top: 20, 
+      bottom: 20, 
+      width: 2, 
+      backgroundColor: TechNoir.colors.tint,
   },
   summaryText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 24,
-    color: '#333',
+    color: TechNoir.colors.textPrimary,
+    marginLeft: 12,
   },
-  processingContainer: {
+  // Format Selector Styles
+  formatSection: {
+    marginBottom: 24,
+  },
+  formatScroll: {
+    marginBottom: 8,
+  },
+  formatChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 32,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    borderRadius: 4,
+    backgroundColor: TechNoir.colors.surface,
+    borderWidth: 1,
+    borderColor: TechNoir.colors.border,
+    gap: 6,
   },
-  processingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
+  formatChipSelected: {
+    backgroundColor: TechNoir.colors.textPrimary,
+    borderColor: TechNoir.colors.textPrimary,
+  },
+  formatChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: TechNoir.colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  formatChipTextSelected: {
+    color: TechNoir.colors.background,
+  },
+  formatDescription: {
+    fontSize: 11,
+    color: TechNoir.colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });

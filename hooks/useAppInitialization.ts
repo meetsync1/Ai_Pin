@@ -61,25 +61,14 @@ export function useAppInitialization() {
             setState((prev) => ({
               ...prev,
               progress: 20 + (progress * 0.6), // 20-80%
-              currentStep: `Downloading... ${Math.round(progress)}%`,
+              currentStep: `Downloading... ${Math.round(progress * 100)}%`,
             }));
           }
         );
       }
 
-      setState((prev) => ({
-        ...prev,
-        progress: 85,
-        currentStep: 'Loading model into memory...',
-      }));
-
-      // Load model
-      await ModelManager.loadModel({
-        ...DEFAULT_MODEL,
-        path: modelPath,
-      });
-
-      console.log('✅ Model loaded successfully');
+      // Skip loading model on startup - load it lazily when needed
+      console.log('✅ Model file ready, skipping load on startup (will load when needed)');
 
       setState({
         isInitializing: false,
