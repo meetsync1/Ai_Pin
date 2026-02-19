@@ -4,16 +4,20 @@
  */
 
 import { Audio } from "expo-av";
-import { EncodingType, getInfoAsync, readAsStringAsync } from "expo-file-system/legacy";
+import {
+  EncodingType,
+  getInfoAsync,
+  readAsStringAsync,
+} from "expo-file-system/legacy";
 import { initWhisper, WhisperContext } from "whisper.rn";
 import AudioConverter from "../audio/AudioConverter";
 import {
-    RealtimeTranscriptionCallback,
-    TranscriptionOptions,
-    TranscriptionResult,
-    TranscriptionSegment,
-    WhisperLoadState,
-    WhisperModelConfig,
+  RealtimeTranscriptionCallback,
+  TranscriptionOptions,
+  TranscriptionResult,
+  TranscriptionSegment,
+  WhisperLoadState,
+  WhisperModelConfig,
 } from "./types";
 
 class WhisperService {
@@ -658,8 +662,8 @@ class WhisperService {
       const realtimeConfig = {
         language: languageParam,
         maxLen: 1,
-        realtimeAudioSec: 600, // Allow up to 10 minutes of recording
-        realtimeAudioSliceSec: 28, // Process every 28 seconds (under 30s whisper.cpp limit)
+        realtimeAudioSec: 1800, // Allow up to 30 minutes of recording
+        realtimeAudioSliceSec: 10, // Process every 10 seconds (under 30s whisper.cpp limit)
         realtimeAudioMinSec: 1, // Start processing after 1 second of audio
       };
 
