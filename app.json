@@ -8,8 +8,16 @@
     "scheme": "aiwrapper",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "permissions": [
+      "android.permission.RECORD_AUDIO",
+      "ios.permission.MICROPHONE"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app uses your microphone to record audio.",
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +27,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "package": "com.ayush008.aiwrapper"
     },
     "web": {
       "output": "static",
