@@ -1,53 +1,96 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+import { Platform } from "react-native";
 
-import { Platform } from 'react-native';
+// ─── Neo-Gothic Dark Techno Palette ─────────────────────────────────────────
+// Black base · Ember orange accent · Dim amber midtones · Ash borders
+const palette = {
+  // Backgrounds
+  bg:              "#0A0A0A",   // near-black base
+  surface:         "#111111",   // card surface
+  surfaceAlt:      "#171717",   // slightly lifted surface
+  surfaceElevated: "#1E1E1E",   // modal / elevated card
+  panel:           "#0E0E0E",   // inset / dark panel
+  panelAlt:        "#161616",   // secondary inset
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+  // Borders
+  border:          "#222222",   // hairline dividers
+  borderStrong:    "#2E2E2E",   // visible separators
+  borderAccent:    "#FF5500",   // orange border highlight
+
+  // Accent — ember orange
+  accent:          "#FF5500",   // primary CTA / active state
+  accentSoft:      "#FF7A33",   // hover / secondary accent
+  accentDim:       "#7A2800",   // muted accent bg (badge, glow fill)
+
+  // Text
+  text:            "#F0EDE8",   // primary text — warm white
+  textMuted:       "#6B6560",   // secondary labels
+  textFaint:       "#3A3633",   // disabled / placeholder
+  iconMuted:       "#4A4540",   // icon default
+
+  // Status
+  danger:          "#CC2200",
+  success:         "#1A7A4A",
+};
 
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  // Both modes identical — this is always dark
+  light: buildTheme(),
+  dark:  buildTheme(),
 };
+
+function buildTheme() {
+  return {
+    background:      palette.bg,
+    surface:         palette.surface,
+    surfaceAlt:      palette.surfaceAlt,
+    surfaceElevated: palette.surfaceElevated,
+    panel:           palette.panel,
+    panelAlt:        palette.panelAlt,
+
+    border:          palette.border,
+    borderStrong:    palette.borderStrong,
+    borderAccent:    palette.borderAccent,
+
+    text:            palette.text,
+    textMuted:       palette.textMuted,
+    textFaint:       palette.textFaint,
+
+    tint:            palette.accent,
+    accent:          palette.accent,
+    accentSoft:      palette.accentSoft,
+    accentDim:       palette.accentDim,
+
+    icon:            palette.text,
+    iconMuted:       palette.iconMuted,
+
+    tabIconDefault:  palette.textMuted,
+    tabIconSelected: palette.accent,
+
+    panelText:       palette.text,
+    panelTextMuted:  palette.textMuted,
+
+    danger:  palette.danger,
+    success: palette.success,
+  };
+}
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    sans:    "AvenirNextCondensed-DemiBold",
+    serif:   "AvenirNextCondensed-Regular",
+    rounded: "AvenirNextCondensed-Medium",
+    mono:    "Menlo",
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans:    "sans-serif-condensed",
+    serif:   "serif",
+    rounded: "sans-serif-medium",
+    mono:    "monospace",
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    sans:    "'Space Grotesk', 'IBM Plex Sans Condensed', 'Rajdhani', sans-serif",
+    serif:   "'IBM Plex Serif', serif",
+    rounded: "'Sora', 'Rajdhani', sans-serif",
+    mono:    "'IBM Plex Mono', 'JetBrains Mono', monospace",
   },
 });

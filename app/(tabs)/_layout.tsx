@@ -1,37 +1,53 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+
+const T = Colors.dark;
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: T.accent,
+        tabBarInactiveTintColor: T.textMuted,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: T.surface,
+          borderTopColor: T.borderStrong,
+          borderTopWidth: 1,
+          height: 56 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 8,
+          fontWeight: "900",
+          letterSpacing: 2,
+          marginBottom: 4,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Recorder",
+          title: "REC",
           tabBarIcon: ({ color }) => (
-            <MaterialIcons name="mic" size={28} color={color} />
+            <MaterialIcons name="mic" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Library",
+          title: "LIB",
           tabBarIcon: ({ color }) => (
-            <MaterialIcons name="library-music" size={28} color={color} />
+            <MaterialIcons name="library-music" size={24} color={color} />
           ),
         }}
       />

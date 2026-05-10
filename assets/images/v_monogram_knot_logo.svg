@@ -1,0 +1,85 @@
+<svg width="100%" viewBox="0 0 690 690" role="img" xmlns="http://www.w3.org/2000/svg" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Geometric V monogram knot logo</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Orange angular V-shaped interlocking ribbon monogram on black background, with sharp mitered corners and double parallel stroke arms</desc>
+
+  <rect width="680" height="680" fill="#0a0a0a" style="fill:rgb(10, 10, 10);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!--
+    Coordinate plan (center = 340, 340):
+    Bottom tip: (340, 580)
+    Outer top-left: (115, 140)
+    Outer top-right: (565, 140)
+    Inner top-left: (185, 140)
+    Inner top-right: (495, 140)
+
+    The logo has two parallel diagonal arms (left and right).
+    Each arm = two parallel strokes ~38px apart.
+    They converge at bottom and cross in the middle forming the knot.
+
+    Left outer arm:  (115,140) -> (340,580)
+    Left inner arm:  (185,140) -> (340,508)  [stops short, routes through knot]
+    Right outer arm: (565,140) -> (340,580)
+    Right inner arm: (495,140) -> (340,508)
+
+    Knot: the inner arms cross each other ~y=370
+    Left inner crosses to right side, right inner crosses to left side
+    creating the impossible-ribbon interlocking illusion.
+  -->
+
+  <g fill="none" stroke="#E06800" stroke-width="30" stroke-linecap="square" stroke-linejoin="miter" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+
+    <!-- LEFT OUTER ARM: top-left to bottom tip -->
+    <line x1="128" y1="130" x2="340" y2="578" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- RIGHT OUTER ARM: top-right to bottom tip -->
+    <line x1="552" y1="130" x2="340" y2="578" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- LEFT INNER ARM upper segment: top down to where it enters the knot -->
+    <!-- Goes from inner-top-left (198,130) down-right toward knot entry (285, 370) -->
+    <line x1="198" y1="130" x2="285" y2="368" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- RIGHT INNER ARM upper segment: from inner-top-right down to knot entry -->
+    <line x1="482" y1="130" x2="395" y2="368" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!--
+      KNOT CROSS SECTION:
+      Left inner arm crosses over right side — continues from (285,368) to (395,460)
+      Right inner arm crosses over left side — continues from (395,368) to (285,460)
+      This forms an X crossing at approx (340, 414)
+
+      Then both merge back:
+      Left thread: (395,460) -> (340,578) [runs parallel to right outer]
+      Right thread: (285,460) -> (340,578) [runs parallel to left outer]
+
+      We draw the "over" segments on top using black occlusion rectangles for the "under" pass.
+    -->
+
+    <!-- KNOT: Right-inner arm continues → crosses LEFT (goes from top-right toward bottom-left) -->
+    <!-- Segment: (395,368) to (285,460) — this goes UNDER -->
+    <line x1="395" y1="368" x2="285" y2="460" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- KNOT: Left-inner arm continues → crosses RIGHT (goes from top-left toward bottom-right) -->
+    <!-- Segment: (285,368) to (395,460) — this goes OVER -->
+    <line x1="285" y1="368" x2="395" y2="460" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- LOWER LEFT inner thread: from knot exit (285,460) down to tip -->
+    <line x1="285" y1="460" x2="340" y2="578" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- LOWER RIGHT inner thread: from knot exit (395,460) down to tip -->
+    <line x1="395" y1="460" x2="340" y2="578" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  </g>
+
+  <!--
+    Occlusion: paint black over the "under" crossing segment to create the over/under illusion.
+    The "under" pass is (395,368)->(285,460).
+    The "over" pass is (285,368)->(395,460).
+    We draw a black thick stroke slightly shorter than the under-segment to break it at the crossing.
+    Crossing point ≈ (340, 414). We occlude the middle ~60px of the under segment.
+  -->
+  <line x1="350" y1="400" x2="330" y2="428" stroke="#0a0a0a" stroke-width="46" stroke-linecap="butt" style="fill:rgb(0, 0, 0);stroke:rgb(10, 10, 10);color:rgb(251, 251, 254);stroke-width:46px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Redraw the over-segment on top to be crisp after occlusion -->
+  <line x1="285" y1="368" x2="395" y2="460" fill="none" stroke="#E06800" stroke-width="30" stroke-linecap="square" stroke-linejoin="miter" style="fill:none;stroke:rgb(224, 104, 0);color:rgb(251, 251, 254);stroke-width:30px;stroke-linecap:square;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+</svg>

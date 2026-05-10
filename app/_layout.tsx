@@ -1,24 +1,50 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler"; // 1. Import this
+import "react-native-reanimated";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from "@/constants/theme";
 
-export const unstable_settings = {
-  anchor: '(tabs)',
+const T = Colors.dark;
+
+const navigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: T.accent,
+    background: T.background,
+    card: T.surface,
+    text: T.text,
+    border: T.borderStrong,
+    notification: T.accent,
+  },
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+export const unstable_settings = { anchor: "(tabs)" };
 
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    /* 2. Wrap everything in GestureHandlerRootView with flex: 1 */
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={navigationTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+          {/* Add your session detail screen here if it's in the root folder */}
+          <Stack.Screen
+            name="session/[id]"
+            options={{
+              headerShown: false,
+              presentation: "card",
+            }}
+          />
+        </Stack>
+        <StatusBar style="light" backgroundColor={T.background} />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

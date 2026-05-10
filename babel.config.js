@@ -1,5 +1,3 @@
-const path = require('path');
-
 module.exports = function (api) {
   api.cache(true);
 
@@ -9,9 +7,12 @@ module.exports = function (api) {
       [
         'module-resolver',
         {
+          root: ['./'],
           alias: {
-            '@': path.resolve(__dirname, '.'),
+            // Use *relative* aliasing so Metro doesn't see absolute filesystem imports.
+            '@': './',
           },
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         },
       ],
       'react-native-reanimated/plugin',

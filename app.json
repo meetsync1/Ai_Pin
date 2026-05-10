@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "aiwrapper",
-    "slug": "aiwrapper",
+    "name": "Verbol",
+    "slug": "verbol",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "aiwrapper",
+    "icon": "./assets/images/verbol-icon.png",
+    "scheme": "verbol",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "permissions": [
@@ -21,14 +21,16 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#0a0a0a",
+        "foregroundImage": "./assets/images/verbol-foreground.png",
+        "monochromeImage": "./assets/images/verbol-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WAKE_LOCK"
+      ],
       "package": "com.ayush008.aiwrapper"
     },
     "web": {

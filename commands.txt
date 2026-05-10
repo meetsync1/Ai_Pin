@@ -1,0 +1,10 @@
+cd /home/ariva/work/wrapper_app/ainotes_lite
+export ANDROID_HOME=/home/ariva/Android/Sdk
+export ANDROID_SDK_ROOT=/home/ariva/Android/Sdk
+npx expo run:android
+
+source /home/ariva/work/wrapper_app/ainotes_lite/backend/.venv/bin/activate
+cd backend
+adb devices                                                                
+adb reverse tcp:8000 tcp:8000
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload   
