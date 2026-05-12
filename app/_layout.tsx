@@ -1,6 +1,7 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // 1. Import this
 import "react-native-reanimated";
 
@@ -28,22 +29,24 @@ export default function RootLayout() {
     /* 2. Wrap everything in GestureHandlerRootView with flex: 1 */
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={navigationTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-          {/* Add your session detail screen here if it's in the root folder */}
-          <Stack.Screen
-            name="session/[id]"
-            options={{
-              headerShown: false,
-              presentation: "card",
-            }}
-          />
-        </Stack>
-        <StatusBar style="light" backgroundColor={T.background} />
+        <BottomSheetModalProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+            {/* Add your session detail screen here if it's in the root folder */}
+            <Stack.Screen
+              name="session/[id]"
+              options={{
+                headerShown: false,
+                presentation: "card",
+              }}
+            />
+          </Stack>
+          <StatusBar style="light" backgroundColor={T.background} />
+        </BottomSheetModalProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

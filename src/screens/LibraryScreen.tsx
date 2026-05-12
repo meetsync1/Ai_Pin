@@ -576,4 +576,75 @@ const styles = StyleSheet.create({
   modalBtnDangerText: {
     color: "#000",
   },
+  sheetBackground: {
+    backgroundColor: T.surfaceElevated,
+  },
+  sheetIndicator: {
+    backgroundColor: T.textMuted,
+  },
+  sheetContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  sheetTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.6,
+    color: T.text,
+  },
+  sheetBody: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    color: T.textMuted,
+    lineHeight: 18,
+  },
+  sheetActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+  },
+  sheetBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: T.borderStrong,
+  },
+  sheetBtnGhost: {
+    backgroundColor: "transparent",
+  },
+  sheetBtnDanger: {
+    backgroundColor: T.danger,
+    borderColor: T.danger,
+  },
+  sheetBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    color: T.text,
+  },
+  sheetBtnDangerText: {
+    color: "#000",
+  },
+  toast: {
+    position: "absolute",
+    top: 8,
+    alignSelf: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: T.surfaceAlt,
+    borderWidth: 1,
+    borderColor: T.borderStrong,
+  },
+  toastText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    color: T.text,
+  },
 });
