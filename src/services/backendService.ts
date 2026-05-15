@@ -29,6 +29,13 @@ function getBaseUrl() {
   return requireEnv(ENV.backendUrl, "EXPO_PUBLIC_BACKEND_URL");
 }
 
+/** Build auth headers for backend requests. */
+function authHeaders(): Record<string, string> {
+  const secret = ENV.appSecretKey;
+  if (!secret) return {};
+  return { "X-App-Secret": secret };
+}
+
 /** POST /api/transcribe — upload audio and start transcription + summarization. */
 export async function transcribeWithBackend(input: {
   sessionId: string;
@@ -58,6 +65,7 @@ export async function transcribeWithBackend(input: {
 
   const response = await fetch(`${baseUrl}/api/transcribe`, {
     method: "POST",
+    headers: authHeaders(),
     body: form,
   });
 
@@ -73,7 +81,9 @@ export async function transcribeWithBackend(input: {
 /** GET /api/session/{sessionId} — fetch session status, chunks, and summary. */
 export async function fetchBackendSession(sessionId: string) {
   const baseUrl = getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/session/${sessionId}`);
+  const response = await fetch(`${baseUrl}/api/session/${sessionId}`, {
+    headers: authHeaders(),
+  });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Backend session failed: ${response.status} ${errorText}`);
@@ -92,6 +102,7 @@ export async function retrySummary(sessionId: string) {
     `${baseUrl}/api/session/${sessionId}/retry-summary`,
     {
       method: "POST",
+      headers: authHeaders(),
     },
   );
   if (!response.ok) {
@@ -115,5 +126,7 @@ export async function checkBackendHealth() {
     groq_model: string;
     groq_base: string;
     webhook_mode: boolean;
+    auth_enabled: boolean;
+    data_retention_days: number;
   }>;
 }

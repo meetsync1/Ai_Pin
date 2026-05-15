@@ -1,15 +1,22 @@
 import asyncio
+import io
 import json
 import os
 import sqlite3
 import time
+import wave
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from mutagen import File as MutagenFile
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 APP_DIR = Path(__file__).resolve().parent
 ROOT_DIR = APP_DIR.parent
@@ -21,6 +28,9 @@ SARVAM_WEBHOOK_SECRET = os.getenv("EXPO_PUBLIC_SARVAM_WEBHOOK_SECRET", "")
 BACKEND_PUBLIC_URL = os.getenv("BACKEND_PUBLIC_URL", "").rstrip("/")
 USE_WEBHOOK = os.getenv("USE_WEBHOOK", "false").lower() == "true"
 
+# ── App Authentication ────────────────────────────────────────────────────────
+APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "")
+
 # ── Groq (OpenAI-compatible) ──────────────────────────────────────────────────
 GROQ_API_KEY  = os.getenv("GROQ_API_KEY", "")
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
@@ -28,6 +38,10 @@ GROQ_MODEL    = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # Sarvam batch API path (versioned at route level)
 SARVAM_JOB_BASE = "/speech-to-text/job/v1"
+
+# ── Data Retention ────────────────────────────────────────────────────────────
+DATA_RETENTION_DAYS = int(os.getenv("DATA_RETENTION_DAYS", "10"))
+MIN_AUDIO_DURATION_S = 3  # reject audio shorter than 3 seconds
 
 DB_PATH = APP_DIR / "transcriptor_backend.db"
 
@@ -54,7 +68,14 @@ Rules:
 - action_items: 2-6 items if any are implied, otherwise [].
 - Do NOT include any other fields.""".strip()
 
-app = FastAPI(title="Transcriptor Backend", version="0.2.0")
+# ── Rate Limiter Setup ────────────────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(title="Transcriptor Backend", version="0.3.0")
+
+# Register rate-limit exceeded handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +83,102 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Authentication Dependency ─────────────────────────────────────────────────
+async def verify_app_secret(request: Request) -> None:
+    """Verify that the request contains a valid X-App-Secret header."""
+    if not APP_SECRET_KEY:
+        # If no secret is configured, skip auth (local dev)
+        return
+    provided = request.headers.get("X-App-Secret", "")
+    if provided != APP_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized: invalid or missing X-App-Secret header")
+
+
+# ── Audio Validation ──────────────────────────────────────────────────────────
+async def validate_audio_files(files: List[UploadFile]) -> List[UploadFile]:
+    """Validate uploaded audio files: reject empty or too-short audio (< 3 seconds)."""
+    validated: List[UploadFile] = []
+    for f in files:
+        content = await f.read()
+        await f.seek(0)  # reset for later reading
+
+        # Empty file check
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail=f"Empty audio file: {f.filename}")
+
+        # Try to detect duration
+        duration = _get_audio_duration(content, f.filename or "audio.wav")
+        if duration is not None and duration < MIN_AUDIO_DURATION_S:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Audio too short ({duration:.1f}s < {MIN_AUDIO_DURATION_S}s): {f.filename}",
+            )
+        validated.append(f)
+    return validated
+
+
+def _get_audio_duration(content: bytes, filename: str) -> Optional[float]:
+    """Try to get audio duration using wave (for WAV) or mutagen (for other formats)."""
+    # Try standard wave module first (most reliable for WAV)
+    try:
+        with wave.open(io.BytesIO(content), "rb") as wf:
+            frames = wf.getnframes()
+            rate = wf.getframerate()
+            if rate > 0:
+                return frames / float(rate)
+    except Exception:
+        pass
+
+    # Fallback to mutagen for other audio formats (mp3, ogg, m4a, etc.)
+    try:
+        audio = MutagenFile(io.BytesIO(content), filename=filename)
+        if audio and audio.info and hasattr(audio.info, "length"):
+            return float(audio.info.length)
+    except Exception:
+        pass
+
+    # If we can't determine duration, use file-size heuristic
+    # WAV 16kHz 16-bit mono ≈ 32,000 bytes/sec → 3s ≈ 96,000 bytes
+    # Be conservative: only reject if clearly too small
+    if len(content) < 48_000:  # ~1.5s even at low quality
+        return 1.0  # Signal it's too short
+
+    return None  # Can't determine, let it through
+
+
+# ── Data Retention Cleanup ────────────────────────────────────────────────────
+def cleanup_old_data() -> int:
+    """Delete sessions, transcripts, and summaries older than DATA_RETENTION_DAYS."""
+    cutoff_ms = now_ms() - (DATA_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+    with get_conn() as conn:
+        # Find old session IDs
+        old_sessions = conn.execute(
+            "SELECT id FROM sessions WHERE created_at < ?", [cutoff_ms]
+        ).fetchall()
+        old_ids = [row["id"] for row in old_sessions]
+
+        if not old_ids:
+            return 0
+
+        placeholders = ",".join("?" for _ in old_ids)
+        conn.execute(f"DELETE FROM transcripts WHERE session_id IN ({placeholders})", old_ids)
+        conn.execute(f"DELETE FROM summaries WHERE session_id IN ({placeholders})", old_ids)
+        conn.execute(f"DELETE FROM sessions WHERE id IN ({placeholders})", old_ids)
+    return len(old_ids)
+
+
+async def data_retention_task() -> None:
+    """Background task that runs daily to clean up old data."""
+    while True:
+        await asyncio.sleep(86400)  # 24 hours
+        try:
+            deleted = cleanup_old_data()
+            if deleted > 0:
+                print(f"[retention] Cleaned up {deleted} sessions older than {DATA_RETENTION_DAYS} days")
+        except Exception as e:
+            print(f"[retention] Cleanup failed: {e}")
 
 
 def now_ms() -> int:
@@ -517,6 +634,20 @@ async def process_job_background(
         update_session_status(session_id, "failed")
 
 
+async def keep_awake_task():
+    """Background task to ping the server every 10 minutes to prevent Render free tier from sleeping."""
+    while True:
+        await asyncio.sleep(600)  # 10 minutes
+        if BACKEND_PUBLIC_URL:
+            url = f"{BACKEND_PUBLIC_URL}/keep-alive"
+            print(f"[keep_awake] Pinging self at {url} to prevent sleep...")
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.get(url)
+            except Exception as e:
+                print(f"[keep_awake] Ping failed: {e}")
+
+
 @app.on_event("startup")
 async def on_startup() -> None:
     init_db()
@@ -524,12 +655,33 @@ async def on_startup() -> None:
     print(f"[startup] Sarvam job base: {SARVAM_BASE_URL}{SARVAM_JOB_BASE}")
     print(f"[startup] Groq model: {GROQ_MODEL} @ {GROQ_BASE_URL}")
     print(f"[startup] Webhook mode: {USE_WEBHOOK}")
+    print(f"[startup] Auth: {'ENABLED' if APP_SECRET_KEY else 'DISABLED (no APP_SECRET_KEY)'}")
+    print(f"[startup] Data retention: {DATA_RETENTION_DAYS} days")
     if not GROQ_API_KEY:
         print("[startup] WARNING: GROQ_API_KEY is not set!")
 
+    # Start background tasks
+    asyncio.create_task(keep_awake_task())
+    asyncio.create_task(data_retention_task())
+
+    # Run cleanup once on startup too
+    try:
+        deleted = cleanup_old_data()
+        if deleted > 0:
+            print(f"[startup] Cleaned up {deleted} old sessions")
+    except Exception as e:
+        print(f"[startup] Initial cleanup failed: {e}")
+
+
+@app.get("/keep-alive")
+async def keep_alive() -> Dict[str, str]:
+    """Endpoint for self-ping and external cron jobs (like cron-job.org) to keep server awake."""
+    return {"status": "awake", "time": str(now_ms())}
+
 
 @app.get("/health")
-async def health_check() -> Dict[str, Any]:
+@limiter.limit("30/minute")
+async def health_check(request: Request) -> Dict[str, Any]:
     issues = []
     if not SARVAM_API_KEY:
         issues.append("EXPO_PUBLIC_SARVAM_API_KEY missing")
@@ -537,6 +689,8 @@ async def health_check() -> Dict[str, Any]:
         issues.append("EXPO_PUBLIC_SARVAM_BASE_URL missing")
     if not GROQ_API_KEY:
         issues.append("GROQ_API_KEY missing")
+    if not APP_SECRET_KEY:
+        issues.append("APP_SECRET_KEY missing (auth disabled)")
     return {
         "status": "ok" if not issues else "degraded",
         "issues": issues,
@@ -544,11 +698,15 @@ async def health_check() -> Dict[str, Any]:
         "groq_model": GROQ_MODEL,
         "groq_base": GROQ_BASE_URL,
         "webhook_mode": USE_WEBHOOK,
+        "auth_enabled": bool(APP_SECRET_KEY),
+        "data_retention_days": DATA_RETENTION_DAYS,
     }
 
 
-@app.post("/api/transcribe")
+@app.post("/api/transcribe", dependencies=[Depends(verify_app_secret)])
+@limiter.limit("5/minute")
 async def transcribe(
+    request: Request,
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     session_id: Optional[str] = Form(None),
@@ -559,6 +717,10 @@ async def transcribe(
 ) -> Dict[str, Any]:
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
+
+    # Validate audio files (reject empty or < 3 seconds)
+    files = await validate_audio_files(files)
+
     if not session_id:
         session_id = f"sess_{now_ms()}"
 
@@ -583,13 +745,15 @@ async def transcribe(
     return {"session_id": session_id, "job_id": job_id, "status": "transcribing"}
 
 
-@app.get("/api/session/{session_id}")
-async def get_session(session_id: str) -> Dict[str, Any]:
+@app.get("/api/session/{session_id}", dependencies=[Depends(verify_app_secret)])
+@limiter.limit("30/minute")
+async def get_session(request: Request, session_id: str) -> Dict[str, Any]:
     return get_session_payload(session_id)
 
 
-@app.post("/api/session/{session_id}/retry-summary")
-async def retry_summary(session_id: str) -> Dict[str, Any]:
+@app.post("/api/session/{session_id}/retry-summary", dependencies=[Depends(verify_app_secret)])
+@limiter.limit("5/minute")
+async def retry_summary(request: Request, session_id: str) -> Dict[str, Any]:
     payload  = get_session_payload(session_id)
     combined = "\n\n".join(c["processed_text"] for c in payload.get("chunks", []) if c.get("processed_text"))
     if not combined.strip():
