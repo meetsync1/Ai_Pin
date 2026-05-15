@@ -47,8 +47,8 @@ To make the application portable, reliable, and ensure consistent restarts:
 |---|---|---|
 | `BACKEND_PUBLIC_URL` | `https://your-app.onrender.com` | Public URL for self-ping keep-alive |
 | `APP_SECRET_KEY` | `my-super-secret-key-abc123` | Shared secret for app authentication |
-| `EXPO_PUBLIC_SARVAM_API_KEY` | *your key* | Sarvam AI API key |
-| `EXPO_PUBLIC_SARVAM_BASE_URL` | *your url* | Sarvam AI base URL |
+| `SARVAM_API_KEY` | *your key* | Sarvam AI API key |
+| `SARVAM_BASE_URL` | *your url* | Sarvam AI base URL |
 | `GROQ_API_KEY` | *your key* | Groq LLM API key |
 | `DATA_RETENTION_DAYS` | `10` | Days before auto-deleting old data (default: 10) |
 

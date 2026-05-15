@@ -22,9 +22,9 @@ APP_DIR = Path(__file__).resolve().parent
 ROOT_DIR = APP_DIR.parent
 load_dotenv(ROOT_DIR / ".env")
 
-SARVAM_API_KEY    = os.getenv("EXPO_PUBLIC_SARVAM_API_KEY", "")
-SARVAM_BASE_URL   = os.getenv("EXPO_PUBLIC_SARVAM_BASE_URL", "").rstrip("/")
-SARVAM_WEBHOOK_SECRET = os.getenv("EXPO_PUBLIC_SARVAM_WEBHOOK_SECRET", "")
+SARVAM_API_KEY    = os.getenv("SARVAM_API_KEY", "")
+SARVAM_BASE_URL   = os.getenv("SARVAM_BASE_URL", "").rstrip("/")
+SARVAM_WEBHOOK_SECRET = os.getenv("SARVAM_WEBHOOK_SECRET", "")
 BACKEND_PUBLIC_URL = os.getenv("BACKEND_PUBLIC_URL", "").rstrip("/")
 USE_WEBHOOK = os.getenv("USE_WEBHOOK", "false").lower() == "true"
 
@@ -684,9 +684,9 @@ async def keep_alive() -> Dict[str, str]:
 async def health_check(request: Request) -> Dict[str, Any]:
     issues = []
     if not SARVAM_API_KEY:
-        issues.append("EXPO_PUBLIC_SARVAM_API_KEY missing")
+        issues.append("SARVAM_API_KEY missing")
     if not SARVAM_BASE_URL:
-        issues.append("EXPO_PUBLIC_SARVAM_BASE_URL missing")
+        issues.append("SARVAM_BASE_URL missing")
     if not GROQ_API_KEY:
         issues.append("GROQ_API_KEY missing")
     if not APP_SECRET_KEY:
