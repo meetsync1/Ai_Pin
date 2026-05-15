@@ -26,7 +26,8 @@ export interface BackendTranscriptionResponse {
 }
 
 function getBaseUrl() {
-  return requireEnv(ENV.backendUrl, "EXPO_PUBLIC_BACKEND_URL");
+  const url = requireEnv(ENV.backendUrl, "EXPO_PUBLIC_BACKEND_URL");
+  return url.replace(/\/+$/, "");
 }
 
 /** Build auth headers for backend requests. */
