@@ -7,8 +7,9 @@ import {
 } from "@/src/storage/sessionStore";
 import { SessionRecord, SessionSummary, TranscriptChunk } from "@/src/types";
 import { MaterialIcons } from "@expo/vector-icons";
+import { createAudioPlayer } from "expo-audio";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   LayoutAnimation,
@@ -36,11 +37,38 @@ export const SessionDetailScreen: React.FC = () => {
 
   const summaryAnim = useRef(new Animated.Value(0)).current;
   const lineAnimsRef = useRef<Animated.Value[]>([]);
+  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.remove();
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
+  const playAudio = useCallback(() => {
+    if (!session?.audioUri) return;
+    if (!playerRef.current) {
+      playerRef.current = createAudioPlayer(null);
+      playerRef.current.replace({ uri: session.audioUri });
+    }
+    playerRef.current.play();
+  }, [session?.audioUri]);
+
+  const pauseAudio = useCallback(() => {
+    if (playerRef.current) {
+      playerRef.current.pause();
+    }
+  }, []);
+
+  useEffect(() => {
+    const isFabric = Boolean((globalThis as any)?.nativeFabricUIManager);
     if (
       Platform.OS === "android" &&
-      UIManager.setLayoutAnimationEnabledExperimental
+      UIManager.setLayoutAnimationEnabledExperimental &&
+      !isFabric
     ) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
@@ -242,6 +270,22 @@ export const SessionDetailScreen: React.FC = () => {
             </View>
           </View>
         </View>
+
+        {session.audioUri && (
+          <View style={styles.metaCard}>
+            <View style={styles.metaRow}>
+              <Pressable style={styles.metaItem} onPress={playAudio}>
+                <MaterialIcons name="play-arrow" size={24} color={T.accent} />
+                <Text style={styles.metaLabel}>PLAY AUDIO</Text>
+              </Pressable>
+              <View style={styles.metaDiv} />
+              <Pressable style={styles.metaItem} onPress={pauseAudio}>
+                <MaterialIcons name="pause" size={24} color={T.textMuted} />
+                <Text style={styles.metaLabel}>PAUSE AUDIO</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* ── Summary section ── */}
         {summaryPayload ? (

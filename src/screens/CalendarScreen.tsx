@@ -1,12 +1,10 @@
 import { Colors } from "@/constants/theme";
-import { SessionCard } from "@/src/components/SessionCard";
-import { getSessions } from "@/src/storage/sessionStore";
-import { SessionRecord } from "@/src/types";
+import { getSessions, getSummary } from "@/src/storage/sessionStore";
+import { SessionRecord, SessionSummary } from "@/src/types";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BottomSheetBackdrop, BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,6 +39,13 @@ function formatDayLabel(date: Date) {
   });
 }
 
+function formatTimeLabel(dateMs: number) {
+  return new Date(dateMs).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function buildCalendarCells(monthDate: Date): CalendarCell[] {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -67,14 +72,21 @@ export const CalendarScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [summaries, setSummaries] = useState<Record<string, SessionSummary>>({});
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-  const sheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => [260, 520], []);
 
   const load = useCallback(async () => {
     const result = await getSessions();
     setSessions(result);
+    const sumResult: Record<string, SessionSummary> = {};
+    for (const session of result) {
+      const summary = await getSummary(session.id);
+      if (summary) {
+        sumResult[session.id] = summary;
+      }
+    }
+    setSummaries(sumResult);
   }, []);
 
   useFocusEffect(
@@ -86,7 +98,11 @@ export const CalendarScreen: React.FC = () => {
   const sessionsByDate = useMemo(() => {
     const map: Record<string, SessionRecord[]> = {};
     sessions.forEach((session) => {
-      const key = toDateKey(new Date(session.createdAt));
+      const createdAtMs =
+        typeof session.createdAt === "number"
+          ? session.createdAt
+          : Number(session.createdAt);
+      const key = toDateKey(new Date(createdAtMs));
       if (!map[key]) {
         map[key] = [];
       }
@@ -109,9 +125,6 @@ export const CalendarScreen: React.FC = () => {
 
   const openDaySheet = useCallback((key: string) => {
     setSelectedDateKey(key);
-    requestAnimationFrame(() => {
-      sheetRef.current?.present();
-    });
   }, []);
 
   const changeMonth = (delta: number) => {
@@ -152,12 +165,53 @@ export const CalendarScreen: React.FC = () => {
     );
   };
 
-  const renderSession = ({ item }: { item: SessionRecord }) => (
-    <SessionCard
-      session={item}
-      onPress={() => router.push(`/session/${item.id}`)}
-    />
-  );
+  const renderSession = ({ item }: { item: SessionRecord }) => {
+    const statusColor =
+      item.status === "ready"
+        ? T.success
+        : item.status === "failed"
+          ? T.danger
+          : T.accent;
+    const createdAtMs =
+      typeof item.createdAt === "number" ? item.createdAt : Number(item.createdAt);
+    const mins = Math.max(1, Math.round(item.durationSeconds / 60));
+    const summary = summaries[item.id]?.executive_summary;
+
+    return (
+      <Pressable
+        onPress={() => router.push(`/session/${item.id}`)}
+        style={({ pressed }) => [
+          styles.flashcard,
+          {
+            borderColor: statusColor,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <View style={styles.flashcardTop}>
+          <Text style={styles.flashcardTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={[styles.flashcardStatus, { color: statusColor }]}
+            numberOfLines={1}
+          >
+            {item.status.toUpperCase()}
+          </Text>
+        </View>
+        {summary && (
+          <Text style={styles.flashcardSummaryPreview} numberOfLines={2}>
+            {summary}
+          </Text>
+        )}
+        <View style={styles.flashcardMeta}>
+          <Text style={styles.flashcardMetaText}>{item.contextTag}</Text>
+          <Text style={styles.flashcardMetaText}>
+            {formatTimeLabel(createdAtMs)} · {mins}m
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   const sheetTitle = selectedDateKey
     ? formatDayLabel(new Date(selectedDateKey))
@@ -209,42 +263,30 @@ export const CalendarScreen: React.FC = () => {
         contentContainerStyle={styles.calendarGrid}
       />
 
-      <BottomSheetModal
-        ref={sheetRef}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        backgroundStyle={{ backgroundColor: T.surfaceElevated }}
-        handleIndicatorStyle={{ backgroundColor: T.textMuted }}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop
-            {...props}
-            opacity={0.85}
-            appearsOnIndex={0}
-            disappearsOnIndex={-1}
-            pressBehavior="close"
+      {selectedDateKey && (
+        <>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{sheetTitle}</Text>
+            <Text style={styles.sheetCount}>
+              {selectedSessions.length} recording
+              {selectedSessions.length === 1 ? "" : "s"}
+            </Text>
+          </View>
+          <FlatList
+            data={selectedSessions}
+            extraData={summaries}
+            renderItem={renderSession}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <MaterialIcons name="event-busy" size={20} color={T.textMuted} />
+                <Text style={styles.emptyText}>No recordings on this day.</Text>
+              </View>
+            }
+            contentContainerStyle={styles.sheetList}
           />
-        )}
-      >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>{sheetTitle}</Text>
-          <Text style={styles.sheetCount}>
-            {selectedSessions.length} recording
-            {selectedSessions.length === 1 ? "" : "s"}
-          </Text>
-        </View>
-        <FlatList
-          data={selectedSessions}
-          renderItem={renderSession}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <MaterialIcons name="event-busy" size={20} color={T.textMuted} />
-              <Text style={styles.emptyText}>No recordings on this day.</Text>
-            </View>
-          }
-          contentContainerStyle={styles.sheetList}
-        />
-      </BottomSheetModal>
+        </>
+      )}
     </View>
   );
 };
@@ -346,6 +388,50 @@ const styles = StyleSheet.create({
   sheetList: {
     paddingTop: 8,
     paddingBottom: 24,
+  },
+  flashcard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: T.surface,
+  },
+  flashcardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  flashcardTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+    color: T.text,
+  },
+  flashcardStatus: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+  flashcardSummaryPreview: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    color: T.text,
+    opacity: 0.8,
+  },
+  flashcardMeta: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  flashcardMetaText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: T.textMuted,
   },
   emptyWrap: {
     flexDirection: "row",

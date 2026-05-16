@@ -7,27 +7,21 @@ import {
 } from "@/src/storage/sessionStore";
 import { SessionRecord } from "@/src/types";
 import { MaterialIcons } from "@expo/vector-icons";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
+import { RectButton, Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const T = Colors.dark;
@@ -39,15 +33,13 @@ export const LibraryScreen: React.FC = () => {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
   const [pendingDelete, setPendingDelete] = useState<SessionRecord | null>(
     null,
   );
+  const [deleteVisible, setDeleteVisible] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const [toastMsg, setToastMsg] = useState("");
   const failedIdsRef = useRef<Set<string>>(new Set());
-  const deleteSheetRef = useRef<BottomSheet>(null);
-  const deleteSnapPoints = useMemo(() => [220], []);
 
   const load = useCallback(async () => {
     try {
@@ -107,68 +99,55 @@ export const LibraryScreen: React.FC = () => {
 
   const startInlineRename = useCallback((session: SessionRecord) => {
     setEditingId(session.id);
-    setEditingTitle(session.title);
   }, []);
 
   const cancelInlineRename = useCallback(() => {
     setEditingId(null);
-    setEditingTitle("");
   }, []);
 
-  const handleRenameSave = useCallback(async () => {
-    if (!editingId) return;
-    const trimmed = editingTitle.trim();
-    if (!trimmed) {
-      Alert.alert("Invalid name", "Please enter a title.");
-      return;
-    }
-    try {
-      await updateSessionTitle(editingId, trimmed);
-      cancelInlineRename();
-      await load();
-      showToast("Renamed");
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to rename session.");
-    }
-  }, [editingId, editingTitle, cancelInlineRename, load, showToast]);
+  const handleRenameSave = useCallback(
+    async (sessionId: string, title: string) => {
+      const trimmed = title.trim();
+      if (!trimmed) {
+        Alert.alert("Invalid name", "Please enter a title.");
+        return;
+      }
+      try {
+        await updateSessionTitle(sessionId, trimmed);
+        cancelInlineRename();
+        await load();
+        showToast("Renamed");
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Failed to rename session.");
+      }
+    },
+    [cancelInlineRename, load, showToast],
+  );
 
-  const openDeleteSheet = useCallback((session: SessionRecord) => {
+  const openDeleteModal = useCallback((session: SessionRecord) => {
     setPendingDelete(session);
-    deleteSheetRef.current?.expand();
+    setDeleteVisible(true);
   }, []);
 
-  const closeDeleteSheet = useCallback(() => {
-    deleteSheetRef.current?.close();
+  const closeDeleteModal = useCallback(() => {
+    setDeleteVisible(false);
     setPendingDelete(null);
   }, []);
 
-  // Replace handleDeleteConfirm
   const handleDeleteConfirm = useCallback(async () => {
     if (!pendingDelete) return;
-    const idToDelete = pendingDelete.id;
-    closeDeleteSheet();
+    const session = pendingDelete;
+    closeDeleteModal();
     try {
-      await deleteSession(idToDelete);
-      await load();
+      await deleteSession(session.id);
+      setSessions((prev) => prev.filter((item) => item.id !== session.id));
+      showToast("Deleted");
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to delete session.");
     }
-  }, [pendingDelete, closeDeleteSheet, load]);
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        opacity={0.8}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
+  }, [pendingDelete, closeDeleteModal, showToast]);
 
   const totalMin = Math.floor(
     sessions.reduce((s, r) => s + r.durationSeconds, 0) / 60,
@@ -177,6 +156,13 @@ export const LibraryScreen: React.FC = () => {
   const SessionRow: React.FC<{ item: SessionRecord }> = ({ item }) => {
     const swipeRef = useRef<Swipeable>(null);
     const isEditing = editingId === item.id;
+    const [draftTitle, setDraftTitle] = useState(item.title);
+
+    useEffect(() => {
+      if (isEditing) {
+        setDraftTitle(item.title);
+      }
+    }, [isEditing, item.title]);
 
     const closeSwipe = () => swipeRef.current?.close();
 
@@ -188,7 +174,13 @@ export const LibraryScreen: React.FC = () => {
 
     const handleDelete = () => {
       closeSwipe();
-      openDeleteSheet(item);
+      openDeleteModal(item);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    };
+
+    const handleFullSwipeDelete = () => {
+      closeSwipe();
+      openDeleteModal(item);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     };
 
@@ -219,12 +211,12 @@ export const LibraryScreen: React.FC = () => {
             { transform: [{ translateX }], opacity },
           ]}
         >
-          <Pressable onPress={handleRename} style={styles.swipeActionContent}>
+          <RectButton onPress={handleRename} style={styles.swipeActionContent}>
             <Animated.View style={{ transform: [{ scale }] }}>
               <MaterialIcons name="edit" size={18} color="#000" />
             </Animated.View>
             <Text style={styles.swipeText}>RENAME</Text>
-          </Pressable>
+          </RectButton>
         </Animated.View>
       );
     };
@@ -256,12 +248,12 @@ export const LibraryScreen: React.FC = () => {
             { transform: [{ translateX }], opacity },
           ]}
         >
-          <Pressable onPress={handleDelete} style={styles.swipeActionContent}>
+          <RectButton onPress={handleDelete} style={styles.swipeActionContent}>
             <Animated.View style={{ transform: [{ scale }] }}>
               <MaterialIcons name="delete" size={18} color="#000" />
             </Animated.View>
             <Text style={styles.swipeText}>DELETE</Text>
-          </Pressable>
+          </RectButton>
         </Animated.View>
       );
     };
@@ -272,6 +264,8 @@ export const LibraryScreen: React.FC = () => {
         renderRightActions={renderRightActions}
         leftThreshold={70}
         rightThreshold={70}
+        onSwipeableRightOpen={handleFullSwipeDelete}
+        enabled={!isEditing}
         onSwipeableWillOpen={(direction) => {
           if (direction === "left") {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -284,9 +278,9 @@ export const LibraryScreen: React.FC = () => {
           session={item}
           onPress={() => router.push(`/session/${item.id}`)}
           isEditing={isEditing}
-          editValue={isEditing ? editingTitle : item.title}
-          onEditChange={setEditingTitle}
-          onEditSubmit={handleRenameSave}
+          editValue={isEditing ? draftTitle : item.title}
+          onEditChange={setDraftTitle}
+          onEditSubmit={() => handleRenameSave(item.id, draftTitle)}
           onEditCancel={cancelInlineRename}
         />
       </Swipeable>
@@ -334,44 +328,46 @@ export const LibraryScreen: React.FC = () => {
         <FlatList
           data={sessions}
           keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           renderItem={({ item }) => <SessionRow item={item} />}
         />
       )}
 
-      <BottomSheet
-        ref={deleteSheetRef}
-        index={-1}
-        snapPoints={deleteSnapPoints}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetIndicator}
-        // onClose={closeDeleteSheet}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={deleteVisible}
+        onRequestClose={closeDeleteModal}
       >
-        <View style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>Delete session?</Text>
-          <Text style={styles.sheetBody}>
-            This will remove the transcript and summary from this device.
-          </Text>
-          <View style={styles.sheetActions}>
-            <Pressable
-              onPress={closeDeleteSheet}
-              style={[styles.sheetBtn, styles.sheetBtnGhost]}
-            >
-              <Text style={styles.sheetBtnText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleDeleteConfirm}
-              style={[styles.sheetBtn, styles.sheetBtnDanger]}
-            >
-              <Text style={[styles.sheetBtnText, styles.sheetBtnDangerText]}>
-                Delete
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </BottomSheet>
+        <Pressable style={styles.modalBackdrop} onPress={closeDeleteModal}>
+          <Pressable style={styles.modalCard} onPress={() => { }}>
+            <Text style={styles.modalTitle}>Delete session?</Text>
+            <Text style={styles.modalBody}>
+              {pendingDelete
+                ? `Remove "${pendingDelete.title}" from this device?`
+                : "This will remove the transcript and summary from this device."}
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={closeDeleteModal}
+                style={[styles.modalBtn, styles.modalBtnGhost]}
+              >
+                <Text style={styles.modalBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleDeleteConfirm}
+                style={[styles.modalBtn, styles.modalBtnDanger]}
+              >
+                <Text style={[styles.modalBtnText, styles.modalBtnDangerText]}>
+                  Delete
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {toastMsg ? (
         <Animated.View
@@ -574,60 +570,6 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   modalBtnDangerText: {
-    color: "#000",
-  },
-  sheetBackground: {
-    backgroundColor: T.surfaceElevated,
-  },
-  sheetIndicator: {
-    backgroundColor: T.textMuted,
-  },
-  sheetContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    gap: 8,
-  },
-  sheetTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0.6,
-    color: T.text,
-  },
-  sheetBody: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    color: T.textMuted,
-    lineHeight: 18,
-  },
-  sheetActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 8,
-  },
-  sheetBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-  },
-  sheetBtnGhost: {
-    backgroundColor: "transparent",
-  },
-  sheetBtnDanger: {
-    backgroundColor: T.danger,
-    borderColor: T.danger,
-  },
-  sheetBtnText: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    color: T.text,
-  },
-  sheetBtnDangerText: {
     color: "#000",
   },
   toast: {
