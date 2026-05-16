@@ -18,7 +18,7 @@ export const fileStorageService = {
   ): Promise<RecordingMetadata> {
     try {
       // Generate a filename from the URI
-      const filename = tempUri.split('/').pop() || `recording_${new Date().getTime()}.m4a`;
+      const filename = tempUri.split('/').pop() || `recording_${new Date().getTime()}.wav`;
 
       // Since expo-file-system crashes on copy/move, we will simply keep the file 
       // in the cache directory where expo-av created it, and save its reference.
@@ -30,7 +30,7 @@ export const fileStorageService = {
         createdAt: new Date().toISOString(),
         title: title || `Recording ${new Date().toLocaleDateString()}`,
         tags: [],
-        mimeType: "audio/mp4",
+        mimeType: "audio/wav",
         fileSize: 0, // Unable to safely get size without FileSystem
       };
 

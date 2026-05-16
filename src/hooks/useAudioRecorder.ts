@@ -95,8 +95,35 @@ export const useAudioRecorder = () => {
         staysActiveInBackground: true,
       });
 
+      // Record directly as WAV 16 kHz mono PCM-16 to avoid needing
+      // FFmpeg for post-recording conversion.
+      const WAV_RECORDING_OPTIONS: Audio.RecordingOptions = {
+        android: {
+          extension: ".wav",
+          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 256000,
+        },
+        ios: {
+          extension: ".wav",
+          audioQuality: Audio.IOSAudioQuality.HIGH,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 256000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: "audio/wav",
+          bitsPerSecond: 256000,
+        },
+      };
+
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        WAV_RECORDING_OPTIONS,
         onRecordingStatusUpdate,
         100 // Status update interval
       );
